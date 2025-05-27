@@ -1,4 +1,4 @@
-package com.ucab.trivia.domain;
+package main.java.com.ucab.trivia.domain;
 
 import java.util.Objects;
 
