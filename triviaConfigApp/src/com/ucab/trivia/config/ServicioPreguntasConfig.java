@@ -20,16 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestionar las preguntas de TRIVIA-UCAB.
- * Permite agregar, modificar, eliminar, consultar y cambiar el estado de las preguntas.
- * Las preguntas se persisten en un archivo JSON.
- * También puede importar preguntas desde un formato JSON original.
- *
- * @author (Tu Nombre/Equipo - Ricardo)
- * @version 1.0
- * @since 2025-05-20
- */
+
 public class ServicioPreguntasConfig {
     // Ruta relativa al directorio padre
     private static final String RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO = "../banco_preguntas_gestion_compartido.json";
@@ -39,10 +30,10 @@ public class ServicioPreguntasConfig {
     private final ObjectMapper objectMapper;
     private List<PreguntaDetallada> preguntasGestionadas;
 
-    /**
-     * Constructor del servicio. Inicializa Jackson y carga las preguntas existentes.
-     * Si el archivo de gestión de preguntas está vacío, intenta una importación inicial.
-     */
+    
+    //Constructor del servicio. Inicializa Jackson y carga las preguntas existentes.
+    //Si el archivo de gestión de preguntas está vacío, intenta una importación inicial.
+    
     public ServicioPreguntasConfig() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -57,10 +48,8 @@ public class ServicioPreguntasConfig {
         }
     }
 
-    /**
-     * Carga la lista de preguntas detalladas desde el archivo JSON de gestión.
-     * @return Una lista de {@link PreguntaDetallada}. Retorna lista vacía si hay error o no existe el archivo.
-     */
+    //Carga la lista de preguntas detalladas desde el archivo JSON de gestión.
+    
     private List<PreguntaDetallada> cargarPreguntasGestionDesdeArchivo() {
         File archivo = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO);
         if (archivo.exists() && archivo.length() > 0) {
@@ -73,10 +62,9 @@ public class ServicioPreguntasConfig {
         return new ArrayList<>();
     }
 
-    /**
-     * Guarda la lista actual de preguntas gestionadas en el archivo JSON.
-     * Intenta una escritura atómica.
-     */
+    //Guarda la lista actual de preguntas gestionadas en el archivo JSON.
+    //Intenta una escritura atómica.
+    
     private void guardarPreguntasGestionEnArchivo() {
         File tempFile = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO + ".tmp");
         File realFile = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO);
@@ -99,12 +87,11 @@ public class ServicioPreguntasConfig {
         }
     }
 
-    /**
-     * Importa preguntas desde el archivo JSON original (formato Map<String, List<PreguntaOriginal>>)
-     * y las convierte al formato {@link PreguntaDetallada}.
-     * Solo se ejecuta si el archivo de gestión de preguntas está vacío.
-     * Las preguntas importadas se marcan como APROBADAS por defecto.
-     */
+    /*Importa preguntas desde el archivo JSON original (formato Map<String, List<PreguntaOriginal>>)
+      y las convierte al formato {@link PreguntaDetallada}.
+      Solo se ejecuta si el archivo de gestión de preguntas está vacío.
+      Las preguntas importadas se marcan como APROBADAS por defecto.*/
+    
     public void importarPreguntasDesdeJsonOriginal() {
         // Verifica de nuevo si el archivo de gestión ya tiene contenido, para no duplicar en ejecuciones múltiples.
         if (!cargarPreguntasGestionDesdeArchivo().isEmpty()) {
@@ -160,15 +147,8 @@ public class ServicioPreguntasConfig {
         }
     }
 
-    /**
-     * Agrega una nueva pregunta al sistema.
-     * @param textoPregunta El texto de la pregunta.
-     * @param respuestaCorrecta La respuesta correcta.
-     * @param categoria La categoría de la pregunta.
-     * @param tiempoMaximoSegundos El tiempo máximo para responder.
-     * @param emailUsuarioCreador El email del usuario que crea la pregunta.
-     * @return Un mensaje de resultado.
-     */
+    //Agrega una nueva pregunta al sistema.
+     
     public String agregarPregunta(String textoPregunta, String respuestaCorrecta, CategoriaTrivia categoria,
                                   int tiempoMaximoSegundos, String emailUsuarioCreador) {
         if (textoPregunta == null || textoPregunta.trim().isEmpty() ||
@@ -189,16 +169,9 @@ public class ServicioPreguntasConfig {
         return "Pregunta agregada con ID: " + nuevaPregunta.getId() + ". Queda en estado 'ESPERANDO_APROBACION'.";
     }
 
-    /**
-     * Modifica una pregunta existente (excepto su ID).
-     * Solo se pueden modificar preguntas que no estén APROBADAS.
-     * @param idPregunta El ID de la pregunta a modificar.
-     * @param nuevoTexto El nuevo texto (si es vacío o null, no se cambia).
-     * @param nuevaRespuesta La nueva respuesta (si es vacía o null, no se cambia).
-     * @param nuevaCategoria La nueva categoría (si es null, no se cambia).
-     * @param nuevoTiempo El nuevo tiempo (si es <=0, no se cambia).
-     * @return Un mensaje de resultado.
-     */
+    /*Modifica una pregunta existente (excepto su ID).
+     Solo se pueden modificar preguntas que no estén APROBADAS.*/
+    
     public String modificarPregunta(String idPregunta, String nuevoTexto, String nuevaRespuesta,
                                     CategoriaTrivia nuevaCategoria, int nuevoTiempo) {
         Optional<PreguntaDetallada> optPregunta = preguntasGestionadas.stream().filter(p -> p.getId().equals(idPregunta)).findFirst();
@@ -218,13 +191,9 @@ public class ServicioPreguntasConfig {
         return "Pregunta con ID '" + idPregunta + "' modificada exitosamente.";
     }
 
-    /**
-     * Modifica únicamente el tiempo máximo de respuesta de una pregunta.
-     * Solo para preguntas no APROBADAS.
-     * @param idPregunta El ID de la pregunta.
-     * @param nuevoTiempoSegundos El nuevo tiempo.
-     * @return Un mensaje de resultado.
-     */
+    /*Modifica únicamente el tiempo máximo de respuesta de una pregunta.
+    Solo para preguntas no APROBADAS.*/
+    
     public String modificarTiempoPregunta(String idPregunta, int nuevoTiempoSegundos) {
         Optional<PreguntaDetallada> optPregunta = buscarPreguntaPorId(idPregunta);
         if (optPregunta.isEmpty()) return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada.";
@@ -239,11 +208,9 @@ public class ServicioPreguntasConfig {
         return "Tiempo máximo de respuesta para pregunta ID '" + idPregunta + "' actualizado a " + nuevoTiempoSegundos + "s.";
     }
 
-    /**
-     * Elimina una pregunta del sistema.
-     * @param idPregunta El ID de la pregunta a eliminar.
-     * @return Un mensaje de resultado.
-     */
+    
+    //Elimina una pregunta del sistema.
+    
     public String eliminarPregunta(String idPregunta) {
         boolean fueEliminada = preguntasGestionadas.removeIf(p -> p.getId().equals(idPregunta));
         if (fueEliminada) {
@@ -253,34 +220,25 @@ public class ServicioPreguntasConfig {
         return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada para eliminar.";
     }
 
-    /** @return Una copia de la lista de todas las preguntas gestionadas. */
+    //return Una copia de la lista de todas las preguntas gestionadas.
     public List<PreguntaDetallada> consultarTodasLasPreguntas() {
         return new ArrayList<>(preguntasGestionadas);
     }
 
-    /**
-     * Busca una pregunta por su ID.
-     * @param id El ID de la pregunta.
-     * @return Un Optional conteniendo la {@link PreguntaDetallada} si se encuentra, o vacío.
-     */
+    //Busca una pregunta por su ID.
+     
     public Optional<PreguntaDetallada> buscarPreguntaPorId(String id) {
         return preguntasGestionadas.stream().filter(p -> p.getId().equals(id)).findFirst();
     }
 
-    /**
-     * Consulta preguntas filtradas por un estado específico.
-     * @param estado El estado por el cual filtrar.
-     * @return Una lista de preguntas en el estado especificado.
-     */
+    //Consulta preguntas filtradas por un estado específico.
+    
     public List<PreguntaDetallada> consultarPreguntasPorEstado(EstadoPregunta estado) {
         return preguntasGestionadas.stream().filter(p -> p.getEstado() == estado).collect(Collectors.toList());
     }
 
-    /**
-     * Consulta preguntas que están esperando aprobación y no fueron creadas por el usuario actual.
-     * @param emailUsuarioActual El email del usuario que está realizando la consulta.
-     * @return Una lista de preguntas pendientes de aprobación por otros.
-     */
+    //Consulta preguntas que están esperando aprobación y no fueron creadas por el usuario actual.
+    
     public List<PreguntaDetallada> consultarPreguntasParaAprobar(String emailUsuarioActual) {
         return preguntasGestionadas.stream()
                 .filter(p -> p.getEstado() == EstadoPregunta.ESPERANDO_APROBACION &&
@@ -289,13 +247,8 @@ public class ServicioPreguntasConfig {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Cambia el estado de una pregunta (ej. para aprobar o rechazar).
-     * @param idPregunta El ID de la pregunta.
-     * @param nuevoEstado El nuevo estado a asignar.
-     * @param emailUsuarioGestor El email del usuario que realiza el cambio de estado.
-     * @return Un mensaje de resultado.
-     */
+    //Cambia el estado de una pregunta (ej. para aprobar o rechazar).
+
     public String cambiarEstadoPregunta(String idPregunta, EstadoPregunta nuevoEstado, String emailUsuarioGestor) {
         Optional<PreguntaDetallada> optPregunta = buscarPreguntaPorId(idPregunta);
         if (optPregunta.isEmpty()) return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada.";
