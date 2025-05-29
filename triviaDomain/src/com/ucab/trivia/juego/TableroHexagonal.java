@@ -250,4 +250,327 @@ public class TableroHexagonal {
         System.out.println("--- Leyenda: C=Centro, G=Geografía, H=Historia, D=Deportes, N=Naturaleza, A=Arte, E=Entretenimiento ---");
         System.out.println("--- Jugadores: J1, J2, etc. ---");
     }
+// ... (código existente de TableroHexagonal.java, incluyendo dibujarTableroConsola) ...
+
+    /**
+     * Direcciones de movimiento en un hexágono "pointy top" usando offset "odd-r".
+     * Estos son los cambios en (fila, col) de la matriz para cada una de las 6 direcciones.
+     * La paridad de la fila actual ('r' en "odd-r") afecta a los vecinos diagonales.
+     * N
+     * NW   NE
+     * \ /
+     * SW---SE
+     * / \
+     * S (conceptual, no es una dirección directa en pointy-top con matriz)
+     * Direcciones para pointy-top, odd-r (r impar desplazado a la derecha):
+     * Par (even r): (q, r)
+     * NE: (q+1, r-1) -> (c+1, f-1)
+     * E:  (q+1, r  ) -> (c+1, f  )
+     * SE: (q+1, r+1) -> (c+1, f+1)
+     * SW: (q  , r+1) -> (c  , f+1)
+     * W:  (q-1, r  ) -> (c-1, f  )
+     * NW: (q  , r-1) -> (c  , f-1)
+     * Impar (odd r): (q, r)
+     * NE: (q  , r-1) -> (c  , f-1)
+     * E:  (q+1, r  ) -> (c+1, f  )
+     * SE: (q  , r+1) -> (c  , f+1)
+     * SW: (q-1, r+1) -> (c-1, f+1)
+     * W:  (q-1, r  ) -> (c-1, f  )
+     * NW: (q-1, r-1) -> (c-1, f-1)
+     *
+     * Para nuestra matriz (fila, col):
+     * Fila par (ej. fila 0, 2, 4...):
+     * 1 (NE): (f-1, c+1) si pointy, (f-1,c) si flat / (f-1, c)
+     * 2 (E):  (f,   c+1)
+     * 3 (SE): (f+1, c+1) si pointy, (f+1,c) si flat / (f+1, c)
+     * 4 (SW): (f+1, c-1) si pointy, (f+1,c-1) si flat / (f+1, c-1)
+     * 5 (W):  (f,   c-1)
+     * 6 (NW): (f-1, c-1) si pointy, (f-1,c-1) si flat / (f-1, c-1)
+     * Fila impar (ej. fila 1, 3, 5...):
+     * 1 (NE): (f-1, c) si pointy, (f-1,c+1) si flat / (f-1, c+1)
+     * 2 (E):  (f,   c+1)
+     * 3 (SE): (f+1, c) si pointy, (f+1,c+1) si flat / (f+1, c+1)
+     * 4 (SW): (f+1, c-1) si pointy, (f+1,c) si flat / (f+1, c)
+     * 5 (W):  (f,   c-1)
+     * 6 (NW): (f-1, c-1) si pointy, (f-1,c) si flat / (f-1, c)
+     * Usaremos la convención "pointy top" con "odd-r" (filas impares desplazadas a la derecha).
+     * El array de direcciones_offset[paridad_fila][direccion] almacenará los delta (df, dc).
+     */
+    private static final int[][][] DIRECCIONES_OFFSET_POINTY_ODD_R = {
+        { // Filas Pares (even r)
+            {-1,  0}, // N (conceptual, en pointy sería NE y NW) - Usamos como NW para simplificar
+            {-1, +1}, // NE
+            { 0, +1}, // E (SE en pointy)
+            {+1, +1}, // SE (S en pointy)
+            {+1,  0}, // SW (S en pointy)
+            { 0, -1}  // W (SW en pointy)
+            // Estas 6 direcciones cubren los vecinos de un hexágono pointy-top.
+            // La numeración podría ser: 0:E, 1:NE, 2:NW, 3:W, 4:SW, 5:SE
+        },
+        { // Filas Impares (odd r)
+            {-1, -1}, // NW
+            {-1,  0}, // NE
+            { 0, +1}, // E
+            {+1,  0}, // SE
+            {+1, -1}, // SW
+            { 0, -1}  // W
+        }
+    };
+    // Para la interfaz de usuario, es mejor numerar las direcciones 1-6
+    // Direcciones para el usuario (1-6), y cómo mapean a los índices de arriba (0-5)
+    // Podríamos definir un enum DireccionHex { E, NE, NW, W, SW, SE }
+
+
+    /**
+     * Obtiene las coordenadas de las casillas vecinas válidas de una coordenada dada.
+     * @param coordActual La coordenada actual.
+     * @return Una lista de CoordenadaHex de los vecinos válidos (dentro del hexágono).
+     */
+    public List<CoordenadaHex> getVecinosValidos(CoordenadaHex coordActual) {
+        List<CoordenadaHex> vecinos = new ArrayList<>();
+        if (getCasilla(coordActual) == null) return vecinos; // No es una casilla válida
+
+        int paridadFila = coordActual.fila % 2; // 0 para par, 1 para impar
+
+        // Usaremos 6 direcciones estándar para hexágonos pointy-top
+        // (df, dc) para E, NE, NW, W, SW, SE (el orden puede variar)
+        int[][] deltas = {
+            // Para filas pares (r is even)
+            { {0, +1}, {-1, 0}, {-1, -1}, {0, -1}, {+1, -1}, {+1, 0} }, 
+            // Para filas impares (r is odd) - pointy top, odd-r (impares desplazadas a la derecha)
+            { {0, +1}, {-1, +1}, {-1, 0}, {0, -1}, {+1, 0}, {+1, +1} }
+        };
+
+        for (int i = 0; i < 6; i++) {
+            int df = deltas[paridadFila][i][0];
+            int dc = deltas[paridadFila][i][1];
+            CoordenadaHex vecinoCoord = new CoordenadaHex(coordActual.fila + df, coordActual.col + dc);
+            if (getCasilla(vecinoCoord) != null) { // Es una casilla válida en el tablero
+                vecinos.add(vecinoCoord);
+            }
+        }
+        return vecinos;
+    }
+
+    /**
+     * Calcula la nueva posición después de moverse una cierta cantidad de pasos desde una
+     * coordenada actual, siguiendo una secuencia de elecciones de dirección.
+     * Este es un movimiento paso a paso.
+     * @param coordInicio La coordenada de inicio.
+     * @param pasos El número total de pasos a moverse.
+     * @param jugador El jugador que se mueve (para la interfaz de elección de dirección).
+     * @return La CoordenadaHex final después de los movimientos.
+     */
+    public CoordenadaHex calcularNuevaPosicionPasoAPaso(CoordenadaHex coordInicio, int pasos, Jugador jugador) {
+        CoordenadaHex posActual = coordInicio;
+        System.out.println("Moviendo a " + jugador.getCorreoElectronico() + " " + pasos + " pasos desde " + posActual);
+
+        for (int i = 0; i < pasos; i++) {
+            List<CoordenadaHex> vecinos = getVecinosValidos(posActual);
+            if (vecinos.isEmpty()) {
+                System.out.println("No hay movimientos válidos desde " + posActual + ". El jugador se queda.");
+                break; // No se puede mover más
+            }
+
+            System.out.println("Paso " + (i + 1) + "/" + pasos + ". Estás en " + posActual + ". Elige dirección para el siguiente paso:");
+            for (int j = 0; j < vecinos.size(); j++) {
+                System.out.println((j + 1) + ". Mover a " + vecinos.get(j) + " (Casilla: " + getCasilla(vecinos.get(j)).getSimboloCategoriaConsola() + ")");
+            }
+
+            int eleccion = ConsolaUtilJuego.leerInt("Elige dirección (1-" + vecinos.size() + ")", 1, vecinos.size());
+            posActual = vecinos.get(eleccion - 1);
+            System.out.println("Movido a: " + posActual);
+
+            // Limpiar la posición anterior del jugador y colocarlo en la nueva
+            // Esto es más para el renderizado en el bucle principal del juego.
+            // Aquí solo calculamos la posición final.
+        }
+        System.out.println("Posición final después de " + pasos + " pasos: " + posActual);
+        return posActual;
+    }
+
+    /**
+     * Calcula la distancia (en número de casillas hexagonales) entre dos coordenadas.
+     * Útil para verificar si un tiro es exacto para llegar al centro.
+     * Se basa en coordenadas cúbicas.
+     * @param c1 Coordenada 1.
+     * @param c2 Coordenada 2.
+     * @return La distancia hexagonal.
+     */
+    public int distanciaHexagonal(CoordenadaHex c1, CoordenadaHex c2) {
+        // Convertir c1 y c2 de matriz a cúbicas relativas al centro (0,0,0) del sistema cúbico.
+        // Matriz centro (radio, radio) es cúbico (0,0,0).
+
+        // Coords cúbicas para c1
+        int x1_cub = c1.col - radio - (c1.fila - radio - ((c1.fila - radio) & 1)) / 2;
+        int z1_cub = c1.fila - radio;
+        int y1_cub = -x1_cub - z1_cub;
+
+        // Coords cúbicas para c2    /**
+     * Direcciones de movimiento en un hexágono "pointy top" usando offset "odd-r".
+     * Estos son los cambios en (fila, col) de la matriz para cada una de las 6 direcciones.
+     * La paridad de la fila actual ('r' en "odd-r") afecta a los vecinos diagonales.
+     * N
+     * NW   NE
+     * \ /
+     * SW---SE
+     * / \
+     * S (conceptual, no es una dirección directa en pointy-top con matriz)
+     * Direcciones para pointy-top, odd-r (r impar desplazado a la derecha):
+     * Par (even r): (q, r)
+     * NE: (q+1, r-1) -> (c+1, f-1)
+     * E:  (q+1, r  ) -> (c+1, f  )
+     * SE: (q+1, r+1) -> (c+1, f+1)
+     * SW: (q  , r+1) -> (c  , f+1)
+     * W:  (q-1, r  ) -> (c-1, f  )
+     * NW: (q  , r-1) -> (c  , f-1)
+     * Impar (odd r): (q, r)
+     * NE: (q  , r-1) -> (c  , f-1)
+     * E:  (q+1, r  ) -> (c+1, f  )
+     * SE: (q  , r+1) -> (c  , f+1)
+     * SW: (q-1, r+1) -> (c-1, f+1)
+     * W:  (q-1, r  ) -> (c-1, f  )
+     * NW: (q-1, r-1) -> (c-1, f-1)
+     *
+     * Para nuestra matriz (fila, col):
+     * Fila par (ej. fila 0, 2, 4...):
+     * 1 (NE): (f-1, c+1) si pointy, (f-1,c) si flat / (f-1, c)
+     * 2 (E):  (f,   c+1)
+     * 3 (SE): (f+1, c+1) si pointy, (f+1,c) si flat / (f+1, c)
+     * 4 (SW): (f+1, c-1) si pointy, (f+1,c-1) si flat / (f+1, c-1)
+     * 5 (W):  (f,   c-1)
+     * 6 (NW): (f-1, c-1) si pointy, (f-1,c-1) si flat / (f-1, c-1)
+     * Fila impar (ej. fila 1, 3, 5...):
+     * 1 (NE): (f-1, c) si pointy, (f-1,c+1) si flat / (f-1, c+1)
+     * 2 (E):  (f,   c+1)
+     * 3 (SE): (f+1, c) si pointy, (f+1,c+1) si flat / (f+1, c+1)
+     * 4 (SW): (f+1, c-1) si pointy, (f+1,c) si flat / (f+1, c)
+     * 5 (W):  (f,   c-1)
+     * 6 (NW): (f-1, c-1) si pointy, (f-1,c) si flat / (f-1, c)
+     * Usaremos la convención "pointy top" con "odd-r" (filas impares desplazadas a la derecha).
+     * El array de direcciones_offset[paridad_fila][direccion] almacenará los delta (df, dc).
+     */
+    private static final int[][][] DIRECCIONES_OFFSET_POINTY_ODD_R = {
+        { // Filas Pares (even r)
+            {-1,  0}, // N (conceptual, en pointy sería NE y NW) - Usamos como NW para simplificar
+            {-1, +1}, // NE
+            { 0, +1}, // E (SE en pointy)
+            {+1, +1}, // SE (S en pointy)
+            {+1,  0}, // SW (S en pointy)
+            { 0, -1}  // W (SW en pointy)
+            // Estas 6 direcciones cubren los vecinos de un hexágono pointy-top.
+            // La numeración podría ser: 0:E, 1:NE, 2:NW, 3:W, 4:SW, 5:SE
+        },
+        { // Filas Impares (odd r)
+            {-1, -1}, // NW
+            {-1,  0}, // NE
+            { 0, +1}, // E
+            {+1,  0}, // SE
+            {+1, -1}, // SW
+            { 0, -1}  // W
+        }
+    };
+    // Para la interfaz de usuario, es mejor numerar las direcciones 1-6
+    // Direcciones para el usuario (1-6), y cómo mapean a los índices de arriba (0-5)
+    // Podríamos definir un enum DireccionHex { E, NE, NW, W, SW, SE }
+
+
+    /**
+     * Obtiene las coordenadas de las casillas vecinas válidas de una coordenada dada.
+     * @param coordActual La coordenada actual.
+     * @return Una lista de CoordenadaHex de los vecinos válidos (dentro del hexágono).
+     */
+    public List<CoordenadaHex> getVecinosValidos(CoordenadaHex coordActual) {
+        List<CoordenadaHex> vecinos = new ArrayList<>();
+        if (getCasilla(coordActual) == null) return vecinos; // No es una casilla válida
+
+        int paridadFila = coordActual.fila % 2; // 0 para par, 1 para impar
+
+        // Usaremos 6 direcciones estándar para hexágonos pointy-top
+        // (df, dc) para E, NE, NW, W, SW, SE (el orden puede variar)
+        int[][] deltas = {
+            // Para filas pares (r is even)
+            { {0, +1}, {-1, 0}, {-1, -1}, {0, -1}, {+1, -1}, {+1, 0} }, 
+            // Para filas impares (r is odd) - pointy top, odd-r (impares desplazadas a la derecha)
+            { {0, +1}, {-1, +1}, {-1, 0}, {0, -1}, {+1, 0}, {+1, +1} }
+        };
+
+        for (int i = 0; i < 6; i++) {
+            int df = deltas[paridadFila][i][0];
+            int dc = deltas[paridadFila][i][1];
+            CoordenadaHex vecinoCoord = new CoordenadaHex(coordActual.fila + df, coordActual.col + dc);
+            if (getCasilla(vecinoCoord) != null) { // Es una casilla válida en el tablero
+                vecinos.add(vecinoCoord);
+            }
+        }
+        return vecinos;
+    }
+
+    /**
+     * Calcula la nueva posición después de moverse una cierta cantidad de pasos desde una
+     * coordenada actual, siguiendo una secuencia de elecciones de dirección.
+     * Este es un movimiento paso a paso.
+     * @param coordInicio La coordenada de inicio.
+     * @param pasos El número total de pasos a moverse.
+     * @param jugador El jugador que se mueve (para la interfaz de elección de dirección).
+     * @return La CoordenadaHex final después de los movimientos.
+     */
+    public CoordenadaHex calcularNuevaPosicionPasoAPaso(CoordenadaHex coordInicio, int pasos, Jugador jugador) {
+        CoordenadaHex posActual = coordInicio;
+        System.out.println("Moviendo a " + jugador.getCorreoElectronico() + " " + pasos + " pasos desde " + posActual);
+
+        for (int i = 0; i < pasos; i++) {
+            List<CoordenadaHex> vecinos = getVecinosValidos(posActual);
+            if (vecinos.isEmpty()) {
+                System.out.println("No hay movimientos válidos desde " + posActual + ". El jugador se queda.");
+                break; // No se puede mover más
+            }
+
+            System.out.println("Paso " + (i + 1) + "/" + pasos + ". Estás en " + posActual + ". Elige dirección para el siguiente paso:");
+            for (int j = 0; j < vecinos.size(); j++) {
+                System.out.println((j + 1) + ". Mover a " + vecinos.get(j) + " (Casilla: " + getCasilla(vecinos.get(j)).getSimboloCategoriaConsola() + ")");
+            }
+
+            int eleccion = ConsolaUtilJuego.leerInt("Elige dirección (1-" + vecinos.size() + ")", 1, vecinos.size());
+            posActual = vecinos.get(eleccion - 1);
+            System.out.println("Movido a: " + posActual);
+
+            // Limpiar la posición anterior del jugador y colocarlo en la nueva
+            // Esto es más para el renderizado en el bucle principal del juego.
+            // Aquí solo calculamos la posición final.
+        }
+        System.out.println("Posición final después de " + pasos + " pasos: " + posActual);
+        return posActual;
+    }
+
+    /**
+     * Calcula la distancia (en número de casillas hexagonales) entre dos coordenadas.
+     * Útil para verificar si un tiro es exacto para llegar al centro.
+     * Se basa en coordenadas cúbicas.
+     * @param c1 Coordenada 1.
+     * @param c2 Coordenada 2.
+     * @return La distancia hexagonal.
+     */
+    public int distanciaHexagonal(CoordenadaHex c1, CoordenadaHex c2) {
+        // Convertir c1 y c2 de matriz a cúbicas relativas al centro (0,0,0) del sistema cúbico.
+        // Matriz centro (radio, radio) es cúbico (0,0,0).
+
+        // Coords cúbicas para c1
+        int x1_cub = c1.col - radio - (c1.fila - radio - ((c1.fila - radio) & 1)) / 2;
+        int z1_cub = c1.fila - radio;
+        int y1_cub = -x1_cub - z1_cub;
+
+        // Coords cúbicas para c2
+        int x2_cub = c2.col - radio - (c2.fila - radio - ((c2.fila - radio) & 1)) / 2;
+        int z2_cub = c2.fila - radio;
+        int y2_cub = -x2_cub - z2_cub;
+
+        return (Math.abs(x1_cub - x2_cub) + Math.abs(y1_cub - y2_cub) + Math.abs(z1_cub - z2_cub)) / 2;
+    }
+        int x2_cub = c2.col - radio - (c2.fila - radio - ((c2.fila - radio) & 1)) / 2;
+        int z2_cub = c2.fila - radio;
+        int y2_cub = -x2_cub - z2_cub;
+
+        return (Math.abs(x1_cub - x2_cub) + Math.abs(y1_cub - y2_cub) + Math.abs(z1_cub - z2_cub)) / 2;
+    }
 }
