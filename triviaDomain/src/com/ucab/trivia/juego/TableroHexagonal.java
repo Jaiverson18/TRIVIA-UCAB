@@ -152,5 +152,102 @@ public class TableroHexagonal {
             System.err.println("Error Crítico: La celda central no fue inicializada como parte del hexágono.");
         }
     }
+/**
+     * Obtiene la Casilla en una coordenada específica de la matriz.
+     * @param coord La coordenada (fila, columna) de la matriz.
+     * @return La Casilla en esa coordenada, o null si la coordenada está fuera de los límites
+     * o no es parte del hexágono.
+     */
+    public Casilla getCasilla(CoordenadaHex coord) {
+        if (coord == null || coord.fila < 0 || coord.fila >= dimensionMatriz || 
+            coord.col < 0 || coord.col >= dimensionMatriz) {
+            return null; // Fuera de los límites de la matriz
+        }
+        return tableroMatriz[coord.fila][coord.col];
+    }
 
+    /**
+     * Obtiene la Casilla en una coordenada específica de la matriz.
+     * @param fila La fila en la matriz.
+     * @param col La columna en la matriz.
+     * @return La Casilla en esa coordenada, o null.
+     */
+    public Casilla getCasilla(int fila, int col) {
+        return getCasilla(new CoordenadaHex(fila, col));
+    }
+
+    /**
+     * Coloca el símbolo de un jugador en una casilla específica.
+     * @param emailJugador El email del jugador para obtener su símbolo.
+     * @param coord La coordenada donde colocar al jugador.
+     */
+    public void colocarJugadorEnCasilla(String emailJugador, CoordenadaHex coord) {
+        Casilla c = getCasilla(coord);
+        if (c != null) {
+            String simbolo = emailASimboloJugador.computeIfAbsent(emailJugador, k -> "J" + (proximoSimboloIdx++));
+            c.setJugadorEnCasilla(simbolo);
+        }
+    }
+
+    /**
+     * Quita el símbolo de cualquier jugador de una casilla específica (la deja vacía).
+     * @param coord La coordenada de donde quitar al jugador.
+     */
+    public void quitarJugadorDeCasilla(CoordenadaHex coord) {
+        Casilla c = getCasilla(coord);
+        if (c != null) {
+            c.setJugadorEnCasilla(" "); // " " representa vacía
+        }
+    }
+
+    /** @return La coordenada de la casilla central del tablero. */
+    public CoordenadaHex getCoordenadaCentro() {
+        return centroTableroCoord;
+    }
+
+    /** @return El radio del hexágono. */
+    public int getRadio() {
+        return radio;
+    }
+
+    /** @return La dimensión de la matriz (cuadrada) que contiene el hexágono. */
+    public int getDimensionMatriz() {
+        return dimensionMatriz;
+    }
+
+    /**
+     * Dibuja una representación simple del tablero hexagonal en la consola.
+     * Muestra el símbolo de la categoría o 'C' para el centro, y el símbolo del jugador si hay uno.
+     * Las celdas que no son parte del hexágono se muestran como ".".
+     */
+    public void dibujarTableroConsola() {
+        System.out.println("\n--- TABLERO TRIVIA-UCAB (Hexagonal) ---");
+        for (int fila = 0; fila < dimensionMatriz; fila++) {
+            // Aplicar offset para filas impares para la visualización "pointy top"
+            if ((fila - radio) % 2 != 0 && radio % 2 == 0 || (fila - radio) % 2 == 0 && radio % 2 != 0 ) { // Heurística simple para indentar
+                 System.out.print("  "); // Indentación para filas "impares" relativas al centro conceptual
+            } else if (dimensionMatriz > 5 && (fila - radio) %2 !=0){ //Ajuste para radios mayores
+                 System.out.print("  ");
+            }
+
+
+            for (int col = 0; col < dimensionMatriz; col++) {
+                Casilla c = tableroMatriz[fila][col];
+                if (c == null) {
+                    System.out.print(" .  "); // Fuera del hexágono
+                } else {
+                    String jugador = c.getJugadorEnCasilla();
+                    if (!jugador.trim().isEmpty()) {
+                        System.out.print("[" + jugador + "]"); // Jugador en la casilla
+                    } else {
+                        System.out.print("[" + c.getSimboloCategoriaConsola() + "]"); // Categoría o Centro
+                    }
+                    System.out.print(" ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("--- Leyenda: C=Centro, G=Geografía, H=Historia, D=Deportes, N=Naturaleza, A=Arte, E=Entretenimiento ---");
+        System.out.println("--- Jugadores: J1, J2, etc. ---");
+    }
 }
