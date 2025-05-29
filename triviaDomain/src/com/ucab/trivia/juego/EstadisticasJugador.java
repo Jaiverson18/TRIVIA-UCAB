@@ -7,10 +7,6 @@ import java.util.Map;
 /**
  * Almacena y gestiona las estadísticas de un jugador durante una partida de TRIVIA-UCAB.
  * Incluye tiempo total de respuestas, preguntas correctas por categoría y juegos ganados.
- *
- * @author (Tu Nombre/Equipo - Luis)
- * @version 1.0
- * @since 2025-05-20
  */
 public class EstadisticasJugador {
     private long tiempoTotalRespuestasMs; // Solo se acumula si el juego es por tiempo
