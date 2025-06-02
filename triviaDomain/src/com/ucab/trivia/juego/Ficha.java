@@ -7,18 +7,14 @@ import java.util.stream.Collectors;
 
 /**
  * Representa la ficha hexagonal de un jugador, que tiene espacios
- * para cada categoría del juego. El objetivo es rellenar todos los espacios.
- *
- * @author (Tu Nombre/Equipo - Luis)
- * @version 1.0
- * @since 2025-05-20
+ * para cada categoria del juego. El objetivo es rellenar todos los espacios.
  */
+
 public class Ficha {
     private Map<CategoriaTrivia, Boolean> categoriasObtenidas;
 
-    /**
-     * Constructor de Ficha. Inicializa todos los espacios de categoría como no obtenidos (false).
-     */
+    //Constructor de Ficha. Inicializa todos los espacios de categoria como no obtenidos (false).
+
     public Ficha() {
         this.categoriasObtenidas = new EnumMap<>(CategoriaTrivia.class);
         for (CategoriaTrivia cat : CategoriaTrivia.values()) {
@@ -27,50 +23,48 @@ public class Ficha {
     }
 
     /**
-     * Verifica si una categoría específica ya ha sido obtenida (marcada como true).
-     * @param categoria La categoría a verificar.
-     * @return true si la categoría ha sido obtenida, false en caso contrario o si la categoría es null.
+     * Verifica si una categoria especifica ya ha sido obtenida (marcada como true).
+     * "categoria" la categoria a verificar.
      */
+
     public boolean haObtenidoCategoria(CategoriaTrivia categoria) {
         return categoria != null && this.categoriasObtenidas.getOrDefault(categoria, false);
     }
 
     /**
-     * Marca una categoría como obtenida (true).
-     * @param categoria La categoría a marcar. No hace nada si la categoría es null.
+     * Marca una categoria como obtenida (true).
+     * "categoria" la categoria a marcar. No hace nada si la categoria es null.
      */
+
     public void marcarCategoriaObtenida(CategoriaTrivia categoria) {
         if (categoria != null) {
             this.categoriasObtenidas.put(categoria, true);
         }
     }
 
-    /**
-     * Verifica si todos los espacios de la ficha (todas las categorías) han sido obtenidos.
-     * @return true si la ficha está completa, false en caso contrario.
-     */
+    //Verifica si todos los espacios de la ficha (todas las categorias) han sido obtenidos.
+
     public boolean estaCompleta() {
         if (categoriasObtenidas.isEmpty()) return false;
         return this.categoriasObtenidas.values().stream().allMatch(obtenida -> obtenida);
     }
 
-    // Getters y Setters para la serialización/deserialización con Jackson
+    // Getters y Setters para la serializacion/deserializacion con Jackson
 
-    /** @return El mapa que indica qué categorías han sido obtenidas. */
-    public Map<CategoriaTrivia, Boolean> getCategoriasObtenidas() { return categoriasObtenidas; }
-    /** @param categoriasObtenidas El nuevo mapa de categorías obtenidas. */
-    public void setCategoriasObtenidas(Map<CategoriaTrivia, Boolean> categoriasObtenidas) { this.categoriasObtenidas = categoriasObtenidas; }
+    public Map<CategoriaTrivia, Boolean> getCategoriasObtenidas() {
+        return categoriasObtenidas; }
 
-    /**
-     * Devuelve una representación en String de la ficha, mostrando las iniciales de las categorías obtenidas.
-     * @return Un String que representa el estado de la ficha.
-     */
+    public void setCategoriasObtenidas(Map<CategoriaTrivia, Boolean> categoriasObtenidas) {
+        this.categoriasObtenidas = categoriasObtenidas; }
+
+    //Devuelve una representacion en String de la ficha, mostrando las iniciales de las categorias obtenidas.
+
     @Override
     public String toString() {
         String obtenidasComoString = categoriasObtenidas.entrySet().stream()
-                .filter(Map.Entry::getValue) // Solo las categorías obtenidas (true)
+                .filter(Map.Entry::getValue) // Solo las categorias obtenidas (true)
                 .map(entry -> entry.getKey().getNombreMostrado().substring(0, Math.min(entry.getKey().getNombreMostrado().length(), 3)).toUpperCase())
                 .collect(Collectors.joining(" ")); // Une las iniciales con un espacio
-        return "Ficha: [" + (obtenidasComoString.isEmpty() ? "VACÍA" : obtenidasComoString) + "]";
+        return "Ficha: [" + (obtenidasComoString.isEmpty() ? "VACIA" : obtenidasComoString) + "]";
     }
 }

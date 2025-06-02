@@ -1,6 +1,6 @@
 package com.ucab.trivia.juego;
 
-import java.security.SecureRandom; // Preferible sobre java.util.Random para aleatoriedad más fuerte
+import java.security.SecureRandom;
 
 public class Dado {
     private final SecureRandom random;
