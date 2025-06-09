@@ -19,9 +19,9 @@
     </properties>
 
     <modules>
-        <module>trivia-domain</module>
-        <module>trivia-config-app</module>
-        <module>trivia-game-app</module>
+        <module>triviaDomain</module>
+        <module>triviaConfigApp</module>
+        <module>triviaGameApp</module>
     </modules>
 
     <dependencyManagement>
