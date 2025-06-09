@@ -15,87 +15,66 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-/**
- * Servicio encargado de cargar y proveer preguntas para la aplicacion del juego.
- * Carga preguntas desde un archivo JSON gestionado por la aplicacion de configuracion,
- * filtrando solo aquellas que estan APROBADAS.
- */
 public class ServicioPreguntasJuego {
-    // Ruta relativa al directorio padre donde AppConfig guarda el archivo de gestion.
-    private static final String RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO = "banco_preguntas_gestion_compartido.json";
+    private static final String NOMBRE_ARCHIVO_PREGUNTAS = "banco_preguntas_gestion_compartido.json";
     private final ObjectMapper objectMapper;
-    private Map<CategoriaTrivia, List<PreguntaDetallada>> preguntasAprobadasAgrupadasPorCategoria;
+    private Map<CategoriaTrivia, List<PreguntaDetallada>> preguntasAprobadasPorCategoria;
     private final Random generadorAleatorio;
-
-    //Constructor del servicio. Inicializa Jackson, el generador aleatorio y carga las preguntas.
+    private final File archivoDePreguntas;
 
     public ServicioPreguntasJuego() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.findAndRegisterModules();
         this.generadorAleatorio = new SecureRandom();
+        this.archivoDePreguntas = localizarArchivoDeDatos(NOMBRE_ARCHIVO_PREGUNTAS);
         cargarYFiltrarPreguntasAprobadas();
     }
 
-    /**
-     * Carga todas las preguntas desde el archivo JSON de gestion y luego las filtra
-     * para quedarse solo con las APROBADAS, agrupandolas por categoria.
-     */
+    private File localizarArchivoDeDatos(String nombreArchivo) {
+        File archivo = new File(nombreArchivo);
+        if (archivo.exists()) {
+            return archivo;
+        }
+        archivo = new File("../" + nombreArchivo);
+        return archivo;
+    }
+
     private void cargarYFiltrarPreguntasAprobadas() {
-        this.preguntasAprobadasAgrupadasPorCategoria = new EnumMap<>(CategoriaTrivia.class);
-        for (CategoriaTrivia categoria : CategoriaTrivia.values()) {
-            preguntasAprobadasAgrupadasPorCategoria.put(categoria, new ArrayList<>());
+        this.preguntasAprobadasPorCategoria = new EnumMap<>(CategoriaTrivia.class);
+        for (CategoriaTrivia cat : CategoriaTrivia.values()) {
+            preguntasAprobadasPorCategoria.put(cat, new ArrayList<>());
         }
 
-        File archivoDePreguntas = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO);
         if (!archivoDePreguntas.exists() || archivoDePreguntas.length() == 0) {
-            System.err.println("ADVERTENCIA CRITICA: El archivo de preguntas '" + archivoDePreguntas.getAbsolutePath() +
-                    "' no existe o esta vacio. El juego no tendra preguntas disponibles.");
-            System.err.println("Por favor, ejecute primero la Aplicacion de Configuracion para generar o importar preguntas.");
+            System.err.println("ADVERTENCIA CRÍTICA: El archivo de preguntas '" + archivoDePreguntas.getAbsolutePath() + "' no existe o está vacío.");
+            System.err.println("El juego no tendrá preguntas. Ejecute AppConfig para generar/importar preguntas.");
             return;
         }
 
         try {
-            List<PreguntaDetallada> todasLasPreguntasGestionadas = objectMapper.readValue(archivoDePreguntas, new TypeReference<List<PreguntaDetallada>>() {});
+            List<PreguntaDetallada> todasLasPreguntas = objectMapper.readValue(archivoDePreguntas, new TypeReference<>() {});
 
-            for (PreguntaDetallada pregunta : todasLasPreguntasGestionadas) {
-                if (pregunta.getEstado() == EstadoPregunta.APROBADA && pregunta.getCategoria() != null) {
-                    preguntasAprobadasAgrupadasPorCategoria.get(pregunta.getCategoria()).add(pregunta);
+            for (PreguntaDetallada p : todasLasPreguntas) {
+                if (p.getEstado() == EstadoPregunta.APROBADA && p.getCategoria() != null) {
+                    preguntasAprobadasPorCategoria.computeIfAbsent(p.getCategoria(), k -> new ArrayList<>()).add(p);
                 }
             }
 
-            final boolean[] advertenciaMostrada = {false};
-            preguntasAprobadasAgrupadasPorCategoria.forEach((categoria, listaDePreguntas) -> {
-                if (listaDePreguntas.isEmpty()) {
-                    System.err.println("ADVERTENCIA: No se encontraron preguntas APROBADAS para la categoria: " + categoria.getNombreMostrado());
-                    advertenciaMostrada[0] = true;
+            preguntasAprobadasPorCategoria.forEach((cat, lista) -> {
+                if (lista.isEmpty()) {
+                    System.err.println("ADVERTENCIA: No hay preguntas APROBADAS para la categoría: " + cat.getNombreMostrado());
                 }
             });
-            if (!advertenciaMostrada[0]) {
-                System.out.println("INFO: Todas las categorias tienen preguntas aprobadas cargadas para el juego.");
-            }
 
         } catch (IOException e) {
-            System.err.println("Error fatal al cargar o procesar las preguntas para el juego desde '" + archivoDePreguntas.getAbsolutePath() + "': " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error fatal al cargar o procesar preguntas desde '" + archivoDePreguntas.getAbsolutePath() + "': " + e.getMessage());
         }
     }
 
-    /**
-     * Selecciona una pregunta aleatoria de la categoría especificada.
-     * "categoria" la categoria de la cual seleccionar la pregunta.
-     * Retorna una lista <PreguntaDetallada> aleatoria, o null si no hay preguntas aprobadas
-     * disponibles para esa categoria o si la categoria es null.
-     */
-
     public PreguntaDetallada seleccionarPreguntaAleatoria(CategoriaTrivia categoria) {
-        if (categoria == null) {
-            System.err.println("Error: Intento de seleccionar pregunta para categoria nula.");
-            return null;
-        }
-        List<PreguntaDetallada> preguntasDeLaCategoria = preguntasAprobadasAgrupadasPorCategoria.get(categoria);
-        if (preguntasDeLaCategoria == null || preguntasDeLaCategoria.isEmpty()) {
-            return null;
-        }
-        return preguntasDeLaCategoria.get(generadorAleatorio.nextInt(preguntasDeLaCategoria.size()));
+        if (categoria == null) return null;
+        List<PreguntaDetallada> listaCategoria = preguntasAprobadasPorCategoria.get(categoria);
+        if (listaCategoria == null || listaCategoria.isEmpty()) return null;
+        return listaCategoria.get(generadorAleatorio.nextInt(listaCategoria.size()));
     }
 }
