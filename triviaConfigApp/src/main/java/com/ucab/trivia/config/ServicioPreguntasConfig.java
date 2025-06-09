@@ -20,225 +20,146 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-
 public class ServicioPreguntasConfig {
-    // Ruta relativa al directorio padre
-    private static final String RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO = "../banco_preguntas_gestion_compartido.json";
-    // Ruta al archivo JSON original dentro de los recursos del proyecto (classpath)
-    private static final String RUTA_RECURSO_PREGUNTAS_ORIGINALES_JSON = "/preguntasJuegoTrivia.json";
+    private static final String NOMBRE_ARCHIVO_PREGUNTAS = "banco_preguntas_gestion_compartido.json";
+    private static final String RUTA_RECURSO_PREGUNTAS_ORIGINALES = "/preguntasJuegoTrivia.json";
 
     private final ObjectMapper objectMapper;
     private List<PreguntaDetallada> preguntasGestionadas;
+    private final File archivoDePreguntas;
 
-    
-    //Constructor del servicio. Inicializa Jackson y carga las preguntas existentes.
-    //Si el archivo de gestion de preguntas esta vacio, intenta una importacion inicial.
-    
     public ServicioPreguntasConfig() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        this.objectMapper.findAndRegisterModules(); // Para manejar Enums con @JsonCreator/@JsonValue
+        this.objectMapper.findAndRegisterModules();
+        this.archivoDePreguntas = localizarArchivoDeDatos(NOMBRE_ARCHIVO_PREGUNTAS);
         this.preguntasGestionadas = cargarPreguntasGestionDesdeArchivo();
 
         if (this.preguntasGestionadas.isEmpty()) {
-            System.out.println("INFO: El archivo '" + RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO + "' esta vacio o no existe. Se intentara una importacion inicial de preguntas.");
+            System.out.println("INFO: El banco de preguntas de gestión está vacío. Intentando importación inicial...");
             importarPreguntasDesdeJsonOriginal();
-            // Es importante recargar despues de la importacion, ya que la importacion guarda y luego esta instancia debe leer el archivo.
             this.preguntasGestionadas = cargarPreguntasGestionDesdeArchivo();
         }
     }
 
-    //Carga la lista de preguntas detalladas desde el archivo JSON de gestion.
-    
+    private File localizarArchivoDeDatos(String nombreArchivo) {
+        File archivo = new File(nombreArchivo);
+        if (archivo.exists()) {
+            return archivo;
+        }
+        return new File("../" + nombreArchivo);
+    }
+
     private List<PreguntaDetallada> cargarPreguntasGestionDesdeArchivo() {
-        File archivo = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO);
-        if (archivo.exists() && archivo.length() > 0) {
+        if (archivoDePreguntas.exists() && archivoDePreguntas.length() > 0) {
             try {
-                return objectMapper.readValue(archivo, new TypeReference<List<PreguntaDetallada>>() {});
+                return objectMapper.readValue(archivoDePreguntas, new TypeReference<>() {});
             } catch (IOException e) {
-                System.err.println(">> Error al cargar preguntas desde " + archivo.getAbsolutePath() + ": " + e.getMessage());
+                System.err.println(">> Error al cargar preguntas: " + e.getMessage());
             }
         }
         return new ArrayList<>();
     }
 
-    //Guarda la lista actual de preguntas gestionadas en el archivo JSON.
-    //Intenta una escritura atomica.
-    
     private void guardarPreguntasGestionEnArchivo() {
-        File tempFile = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO + ".tmp");
-        File realFile = new File(RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO);
+        File tempFile = new File(archivoDePreguntas.getAbsolutePath() + ".tmp");
         try {
-            File parentDir = realFile.getParentFile();
-            if (parentDir != null && !parentDir.exists()) {
-                parentDir.mkdirs();
-            }
             objectMapper.writeValue(tempFile, preguntasGestionadas);
-            Files.move(tempFile.toPath(), realFile.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
-            System.err.println(">> Error al guardar preguntas en " + realFile.getAbsolutePath() + ": " + e.getMessage());
-            if(tempFile.exists()) tempFile.delete();
-        } catch (UnsupportedOperationException uoe){
+            Files.move(tempFile.toPath(), archivoDePreguntas.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (Exception e) {
+            System.err.println(">> Error al guardar preguntas: " + e.getMessage());
             try {
-                Files.move(tempFile.toPath(), realFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException ioe) {
-                System.err.println(">> Error al guardar preguntas (fallback move) en " + realFile.getAbsolutePath() + ": " + ioe.getMessage());
+                if (tempFile.exists()) Files.delete(tempFile.toPath());
+                Files.copy(tempFile.toPath(), archivoDePreguntas.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                System.err.println(">> Error en el fallback de guardado: " + ex.getMessage());
             }
         }
     }
 
-    /*Importa preguntas desde el archivo JSON original (formato Map<String, List<PreguntaOriginal>>)
-      y las convierte al formato {@link PreguntaDetallada}.
-      Solo se ejecuta si el archivo de gestion de preguntas esta vacio.
-      Las preguntas importadas se marcan como APROBADAS por defecto.*/
-    
     public void importarPreguntasDesdeJsonOriginal() {
-        // Verifica de nuevo si el archivo de gestion ya tiene contenido, para no duplicar en ejecuciones multiples.
         if (!cargarPreguntasGestionDesdeArchivo().isEmpty()) {
-            System.out.println("INFO: El archivo de gestion '" + RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO + "' ya tiene datos. No se realizara la importacion automatica.");
+            System.out.println("INFO: El archivo de gestión ya tiene datos. No se re-importará.");
             return;
         }
 
-        try (InputStream is = ServicioPreguntasConfig.class.getResourceAsStream(RUTA_RECURSO_PREGUNTAS_ORIGINALES_JSON)) {
+        try (InputStream is = ServicioPreguntasConfig.class.getResourceAsStream(RUTA_RECURSO_PREGUNTAS_ORIGINALES)) {
             if (is == null) {
-                System.err.println("CRITICO: No se pudo encontrar el archivo de recurso: " + RUTA_RECURSO_PREGUNTAS_ORIGINALES_JSON +
-                        ". Asegurese que este en 'src/main/resources' del modulo 'trivia-config-app'.");
+                System.err.println("CRÍTICO: No se pudo encontrar: " + RUTA_RECURSO_PREGUNTAS_ORIGINALES);
                 return;
             }
-            Map<String, List<PreguntaOriginal>> mapaPreguntasOriginales = objectMapper.readValue(is, new TypeReference<>() {});
-            List<PreguntaDetallada> preguntasAImportar = new ArrayList<>();
-            final int[] contadorImportadasConExito = {0};
-
-            mapaPreguntasOriginales.forEach((nombreCategoriaJson, listaPreguntasSimples) -> {
+            Map<String, List<PreguntaOriginal>> mapaPreguntas = objectMapper.readValue(is, new TypeReference<>() {});
+            List<PreguntaDetallada> importadas = new ArrayList<>();
+            mapaPreguntas.forEach((nombreCat, lista) -> {
                 try {
-                    CategoriaTrivia categoria = CategoriaTrivia.fromString(nombreCategoriaJson); // El enum maneja la conversion
-                    listaPreguntasSimples.forEach(po -> {
-                        preguntasAImportar.add(new PreguntaDetallada(
-                                UUID.randomUUID().toString(),
-                                po.getPregunta(),
-                                po.getRespuesta(),
-                                categoria,
-                                EstadoPregunta.APROBADA, // Las preguntas originales se asumen APROBADAS
-                                "sistema_importador",   // Usuario creador generico para importadas
-                                30                      // Tiempo por defecto en segundos
-                        ));
-                        contadorImportadasConExito[0]++;
-                    });
+                    CategoriaTrivia categoria = CategoriaTrivia.fromString(nombreCat);
+                    lista.forEach(po -> importadas.add(new PreguntaDetallada(
+                            UUID.randomUUID().toString(), po.getPregunta(), po.getRespuesta(), categoria,
+                            EstadoPregunta.APROBADA, "sistema_importador"
+                    )));
                 } catch (IllegalArgumentException e) {
-                    System.err.println("ADVERTENCIA: La categoria '" + nombreCategoriaJson + "' del JSON original no es reconocida o es invalida. " +
-                            "Se omitiran sus preguntas. Detalles: " + e.getMessage());
+                    System.err.println("ADVERTENCIA: Categoría '" + nombreCat + "' no reconocida. Se omitirán sus preguntas.");
                 }
             });
 
-            if (!preguntasAImportar.isEmpty()) {
-                // Añade las nuevas preguntas importadas a la lista en memoria (que deberia estar vacia aqui)
-                this.preguntasGestionadas.addAll(preguntasAImportar);
-                guardarPreguntasGestionEnArchivo(); // Guarda la lista ahora poblada
-                System.out.println(contadorImportadasConExito[0] + " preguntas fueron importadas desde '" + RUTA_RECURSO_PREGUNTAS_ORIGINALES_JSON +
-                        "' y guardadas en '" + RUTA_ARCHIVO_PREGUNTAS_GESTION_COMPARTIDO + "'.");
-            } else {
-                System.out.println("INFO: No se importaron preguntas validas desde '" + RUTA_RECURSO_PREGUNTAS_ORIGINALES_JSON +
-                        "'. El archivo podria estar vacio o todas sus categorias son desconocidas.");
+            if (!importadas.isEmpty()) {
+                this.preguntasGestionadas.addAll(importadas);
+                guardarPreguntasGestionEnArchivo();
+                System.out.println(importadas.size() + " preguntas importadas y guardadas.");
             }
 
         } catch (IOException e) {
-            System.err.println("Error critico al leer o procesar el archivo de preguntas originales '" + RUTA_RECURSO_PREGUNTAS_ORIGINALES_JSON + "': " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error crítico al leer o procesar " + RUTA_RECURSO_PREGUNTAS_ORIGINALES + ": " + e.getMessage());
         }
     }
 
-    //Agrega una nueva pregunta al sistema.
-     
-    public String agregarPregunta(String textoPregunta, String respuestaCorrecta, CategoriaTrivia categoria,
-                                  int tiempoMaximoSegundos, String emailUsuarioCreador) {
-        if (textoPregunta == null || textoPregunta.trim().isEmpty() ||
-                respuestaCorrecta == null || respuestaCorrecta.trim().isEmpty() ||
-                categoria == null || tiempoMaximoSegundos <= 0) {
-            return ">> Error: Datos de pregunta invalidos. Todos los campos son obligatorios y el tiempo debe ser positivo.";
+    public String agregarPregunta(String texto, String resp, CategoriaTrivia cat, String emailCreador) {
+        if (texto.trim().isEmpty() || resp.trim().isEmpty() || cat == null) {
+            return "Error: Datos inválidos.";
         }
-        PreguntaDetallada nuevaPregunta = new PreguntaDetallada(
-                UUID.randomUUID().toString(),
-                textoPregunta.trim(),
-                respuestaCorrecta.trim(),
-                categoria,
-                EstadoPregunta.ESPERANDO_APROBACION,
-                emailUsuarioCreador,
-                tiempoMaximoSegundos);
-        preguntasGestionadas.add(nuevaPregunta);
+        PreguntaDetallada p = new PreguntaDetallada(UUID.randomUUID().toString(), texto, resp, cat,
+                EstadoPregunta.ESPERANDO_APROBACION, emailCreador);
+        preguntasGestionadas.add(p);
         guardarPreguntasGestionEnArchivo();
-        return "Pregunta agregada con ID: " + nuevaPregunta.getId() + ". Queda en estado 'ESPERANDO_APROBACION'.";
+        return "Pregunta agregada (ID: " + p.getId() + "). Esperando aprobación.";
     }
 
-    /*Modifica una pregunta existente (excepto su ID).
-     Solo se pueden modificar preguntas que no esten APROBADAS.*/
-    
-    public String modificarPregunta(String idPregunta, String nuevoTexto, String nuevaRespuesta,
-                                    CategoriaTrivia nuevaCategoria, int nuevoTiempo) {
-        Optional<PreguntaDetallada> optPregunta = preguntasGestionadas.stream().filter(p -> p.getId().equals(idPregunta)).findFirst();
-        if (optPregunta.isEmpty()) return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada.";
+    public String modificarPregunta(String id, String nTexto, String nResp, CategoriaTrivia nCat) {
+        Optional<PreguntaDetallada> optP = preguntasGestionadas.stream().filter(p -> p.getId().equals(id)).findFirst();
+        if (optP.isEmpty()) return "Error: Pregunta no encontrada.";
+        PreguntaDetallada p = optP.get();
+        if (p.getEstado() == EstadoPregunta.APROBADA) return "Error: Preguntas APROBADAS no se pueden modificar.";
 
-        PreguntaDetallada preguntaAModificar = optPregunta.get();
-        if (preguntaAModificar.getEstado() == EstadoPregunta.APROBADA) {
-            return ">> Error: Las preguntas APROBADAS no pueden ser modificadas (solo eliminadas).";
-        }
-
-        if (nuevoTexto != null && !nuevoTexto.trim().isEmpty()) preguntaAModificar.setPregunta(nuevoTexto.trim());
-        if (nuevaRespuesta != null && !nuevaRespuesta.trim().isEmpty()) preguntaAModificar.setRespuesta(nuevaRespuesta.trim());
-        if (nuevaCategoria != null) preguntaAModificar.setCategoria(nuevaCategoria);
-        if (nuevoTiempo > 0) preguntaAModificar.setTiempoMaximoRespuestaSegundos(nuevoTiempo);
+        if (nTexto != null && !nTexto.trim().isEmpty()) p.setPregunta(nTexto.trim());
+        if (nResp != null && !nResp.trim().isEmpty()) p.setRespuesta(nResp.trim());
+        if (nCat != null) p.setCategoria(nCat);
 
         guardarPreguntasGestionEnArchivo();
-        return "Pregunta con ID '" + idPregunta + "' modificada exitosamente.";
+        return "Pregunta ID " + id + " modificada.";
     }
 
-    /*Modifica unicamente el tiempo maximo de respuesta de una pregunta.
-    Solo para preguntas no APROBADAS.*/
-    
-    public String modificarTiempoPregunta(String idPregunta, int nuevoTiempoSegundos) {
-        Optional<PreguntaDetallada> optPregunta = buscarPreguntaPorId(idPregunta);
-        if (optPregunta.isEmpty()) return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada.";
-        PreguntaDetallada pregunta = optPregunta.get();
-        if (pregunta.getEstado() == EstadoPregunta.APROBADA) {
-            return ">> Error: No se puede modificar el tiempo de una pregunta APROBADA.";
-        }
-        if (nuevoTiempoSegundos <= 0) return ">> Error: El tiempo maximo de respuesta debe ser un numero positivo.";
-
-        pregunta.setTiempoMaximoRespuestaSegundos(nuevoTiempoSegundos);
-        guardarPreguntasGestionEnArchivo();
-        return "Tiempo maximo de respuesta para pregunta ID '" + idPregunta + "' actualizado a " + nuevoTiempoSegundos + "s.";
-    }
-
-    
-    //Elimina una pregunta del sistema.
-    
-    public String eliminarPregunta(String idPregunta) {
-        boolean fueEliminada = preguntasGestionadas.removeIf(p -> p.getId().equals(idPregunta));
-        if (fueEliminada) {
+    public String eliminarPregunta(String id) {
+        boolean exito = preguntasGestionadas.removeIf(p -> p.getId().equals(id));
+        if (exito) {
             guardarPreguntasGestionEnArchivo();
-            return "Pregunta con ID '" + idPregunta + "' eliminada exitosamente.";
+            return "Pregunta ID " + id + " eliminada.";
         }
-        return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada para eliminar.";
+        return "Error: Pregunta no encontrada para eliminar.";
     }
 
-    //return Una copia de la lista de todas las preguntas gestionadas.
     public List<PreguntaDetallada> consultarTodasLasPreguntas() {
         return new ArrayList<>(preguntasGestionadas);
     }
 
-    //Busca una pregunta por su ID.
-     
+    // ... El resto de los métodos (buscar, consultar por estado, cambiar estado) se mantienen igual que en la versión anterior ...
     public Optional<PreguntaDetallada> buscarPreguntaPorId(String id) {
         return preguntasGestionadas.stream().filter(p -> p.getId().equals(id)).findFirst();
     }
 
-    //Consulta preguntas filtradas por un estado especifico.
-    
     public List<PreguntaDetallada> consultarPreguntasPorEstado(EstadoPregunta estado) {
         return preguntasGestionadas.stream().filter(p -> p.getEstado() == estado).collect(Collectors.toList());
     }
 
-    //Consulta preguntas que estan esperando aprobacion y no fueron creadas por el usuario actual.
-    
     public List<PreguntaDetallada> consultarPreguntasParaAprobar(String emailUsuarioActual) {
         return preguntasGestionadas.stream()
                 .filter(p -> p.getEstado() == EstadoPregunta.ESPERANDO_APROBACION &&
@@ -247,28 +168,23 @@ public class ServicioPreguntasConfig {
                 .collect(Collectors.toList());
     }
 
-    //Cambia el estado de una pregunta (ej. para aprobar o rechazar).
+    public String cambiarEstadoPregunta(String id, EstadoPregunta nuevoEstado, String emailUsuarioGestor) {
+        Optional<PreguntaDetallada> optP = buscarPreguntaPorId(id);
+        if (optP.isEmpty()) return "Error: Pregunta no encontrada.";
+        PreguntaDetallada p = optP.get();
 
-    public String cambiarEstadoPregunta(String idPregunta, EstadoPregunta nuevoEstado, String emailUsuarioGestor) {
-        Optional<PreguntaDetallada> optPregunta = buscarPreguntaPorId(idPregunta);
-        if (optPregunta.isEmpty()) return ">> Error: Pregunta con ID '" + idPregunta + "' no encontrada.";
-        PreguntaDetallada pregunta = optPregunta.get();
-
-        // Regla: Un usuario no puede aprobar/rechazar sus propias preguntas
         if ((nuevoEstado == EstadoPregunta.APROBADA || nuevoEstado == EstadoPregunta.RECHAZADA) &&
-                pregunta.getUsuarioCreadorEmail() != null &&
-                pregunta.getUsuarioCreadorEmail().equals(emailUsuarioGestor)) {
-            return ">> Error: Un usuario no puede aprobar o rechazar sus propias preguntas.";
+                p.getUsuarioCreadorEmail() != null &&
+                p.getUsuarioCreadorEmail().equals(emailUsuarioGestor)) {
+            return "Error: No puede aprobar/rechazar sus propias preguntas.";
         }
 
-        // Solo se pueden aprobar/rechazar las que estan en ESPERANDO_APROBACION
-        if (pregunta.getEstado() != EstadoPregunta.ESPERANDO_APROBACION &&
-                (nuevoEstado == EstadoPregunta.APROBADA || nuevoEstado == EstadoPregunta.RECHAZADA)) {
-            return ">> Error: Solo se pueden aprobar o rechazar preguntas que esten actualmente en 'ESPERANDO_APROBACION'.";
+        if (p.getEstado() != EstadoPregunta.ESPERANDO_APROBACION && (nuevoEstado == EstadoPregunta.APROBADA || nuevoEstado == EstadoPregunta.RECHAZADA)) {
+            return "Error: Solo se pueden aprobar o rechazar preguntas que estén en 'ESPERANDO_APROBACION'.";
         }
 
-        pregunta.setEstado(nuevoEstado);
+        p.setEstado(nuevoEstado);
         guardarPreguntasGestionEnArchivo();
-        return "Pregunta ID '" + idPregunta + "' ha sido actualizada al estado: " + nuevoEstado;
+        return "Pregunta ID " + id + " actualizada al estado: " + nuevoEstado;
     }
 }

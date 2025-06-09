@@ -1,6 +1,6 @@
 package com.ucab.trivia.config;
 
-import com.ucab.trivia.config.utils.ConsolaUtilConfig;
+import com.ucab.trivia.config.utils.ConsolaUtilConfig; // Asegúrate que la importación es la correcta
 import com.ucab.trivia.domain.CategoriaTrivia;
 import com.ucab.trivia.domain.EstadoPregunta;
 import com.ucab.trivia.domain.PreguntaDetallada;
@@ -8,40 +8,31 @@ import com.ucab.trivia.domain.PreguntaDetallada;
 import java.util.List;
 import java.util.Optional;
 
-
-//Clase principal para la Aplicacion de Configuracion de TRIVIA-UCAB.
-//Permite a los usuarios registrarse, iniciar sesion y gestionar preguntas.
-
+/**
+ * Clase principal para la Aplicación de Configuración de TRIVIA-UCAB.
+ * Permite a los usuarios registrarse, iniciar sesión y gestionar preguntas.
+ *
+ * @author (Tu Nombre/Equipo - Ricardo)
+ * @version 1.1 // Versión con corrección de llamadas a ConsolaUtil
+ * @since 2025-06-02
+ */
 public class AppConfig {
     private final ServicioUsuarios servicioUsuarios;
     private final ServicioPreguntasConfig servicioPreguntasConfig;
-    private String emailUsuarioLogueado; // Almacena el email en texto plano del usuario actual
-
-
-    //Constructor de AppConfig. Inicializa los servicios necesarios.
+    private String emailUsuarioLogueado;
 
     public AppConfig() {
         this.servicioUsuarios = new ServicioUsuarios();
         this.servicioPreguntasConfig = new ServicioPreguntasConfig();
-        // La importacion de preguntas originales se intenta en el constructor de ServicioPreguntasConfig
     }
-
-
-    //Punto de entrada principal de la aplicacion de configuracion.
 
     public static void main(String[] args) {
-        AppConfig app = new AppConfig();
-        app.iniciarAplicacion();
+        new AppConfig().iniciarAplicacion();
     }
-
-    //Inicia el bucle principal de la aplicacion, mostrando menus segun el estado de autenticacion.
 
     public void iniciarAplicacion() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("=====================================================");
-        ConsolaUtilConfig.mostrarMensaje("  Bienvenido a la Aplicacion de Configuracion        ");
-        ConsolaUtilConfig.mostrarMensaje("                TRIVIA-UCAB                          ");
-        ConsolaUtilConfig.mostrarMensaje("=====================================================");
+        ConsolaUtilConfig.mostrarMensaje("Bienvenido a la Aplicación de Configuración TRIVIA-UCAB");
         while (true) {
             if (emailUsuarioLogueado == null) {
                 mostrarMenuAutenticacion();
@@ -51,316 +42,193 @@ public class AppConfig {
         }
     }
 
-    //Muestra el menu de autenticacion (Iniciar Sesion, Registrarse, Salir).
-
     private void mostrarMenuAutenticacion() {
-        ConsolaUtilConfig.mostrarMensaje("\n--- Menu de Autenticacion ---");
-        ConsolaUtilConfig.mostrarMensaje("1. Iniciar Sesion");
+        ConsolaUtilConfig.mostrarMensaje("\n--- Autenticación ---");
+        ConsolaUtilConfig.mostrarMensaje("1. Iniciar Sesión");
         ConsolaUtilConfig.mostrarMensaje("2. Registrar Nuevo Usuario");
-        ConsolaUtilConfig.mostrarMensaje("3. Salir de la Aplicacion");
-        int opcion = ConsolaUtilConfig.leerInt("Seleccione una opcion", 1, 3);
+        ConsolaUtilConfig.mostrarMensaje("3. Salir");
+        int opcion = ConsolaUtilConfig.leerInt("Seleccione una opción", 1, 3);
 
         switch (opcion) {
             case 1: manejarInicioSesion(); break;
             case 2: manejarRegistroUsuario(); break;
-            case 3: manejarSalirAplicacion(); break;
+            case 3: System.exit(0); break;
         }
     }
-
-    //Maneja la logica para el inicio de sesion de un usuario.
 
     private void manejarInicioSesion() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Iniciar Sesion ---");
-        String correo = ConsolaUtilConfig.leerString("Correo Electronico");
-        String contrasena = ConsolaUtilConfig.leerString("Contrasena");
+        ConsolaUtilConfig.mostrarMensaje("--- Iniciar Sesión ---");
+        String correo = ConsolaUtilConfig.leerString("Correo Electrónico");
+        String contrasena = ConsolaUtilConfig.leerString("Contraseña");
         String correoAutenticado = servicioUsuarios.autenticarUsuario(correo, contrasena);
         if (correoAutenticado != null) {
             emailUsuarioLogueado = correoAutenticado;
-            ConsolaUtilConfig.mostrarMensaje("\n¡Inicio de sesion exitoso! Bienvenido de nuevo, " + emailUsuarioLogueado + ".");
+            ConsolaUtilConfig.mostrarMensaje("\n¡Inicio de sesión exitoso! Bienvenido " + emailUsuarioLogueado + ".");
         } else {
-            ConsolaUtilConfig.mostrarMensaje("\n>> Error: Correo electronico o contrasena incorrectos.");
+            ConsolaUtilConfig.mostrarMensaje("\n>> Error: Correo o contraseña incorrectos.");
         }
         ConsolaUtilConfig.presionaEnterParaContinuar();
     }
-
-    //Maneja la logica para el registro de un nuevo usuario.
 
     private void manejarRegistroUsuario() {
         ConsolaUtilConfig.limpiarConsola();
         ConsolaUtilConfig.mostrarMensaje("--- Registrar Nuevo Usuario ---");
-        String correo = ConsolaUtilConfig.leerString("Ingrese su Correo Electronico (ej: usuario@dominio.com)");
-        String contrasena = ConsolaUtilConfig.leerString("Ingrese su Contrasena (debe tener exactamente 6 caracteres)");
-        String repetirContrasena = ConsolaUtilConfig.leerString("Repita su Contrasena");
-        String resultadoRegistro = servicioUsuarios.registrarUsuario(correo, contrasena, repetirContrasena);
-        ConsolaUtilConfig.mostrarMensaje(resultadoRegistro);
+        String correo = ConsolaUtilConfig.leerString("Correo Electrónico (ej: usuario@dominio.com)");
+        String contrasena = ConsolaUtilConfig.leerString("Contraseña (exactamente 6 caracteres)");
+        String repetirContrasena = ConsolaUtilConfig.leerString("Repetir Contraseña");
+        String resultado = servicioUsuarios.registrarUsuario(correo, contrasena, repetirContrasena);
+        ConsolaUtilConfig.mostrarMensaje(resultado);
         ConsolaUtilConfig.presionaEnterParaContinuar();
     }
 
-
-    //Maneja la salida de la aplicacion.
-
-    private void manejarSalirAplicacion() {
-        ConsolaUtilConfig.mostrarMensaje("\nGracias por usar la aplicacion de configuracion. ¡Hasta pronto!");
-        System.exit(0);
-    }
-
-
-    //Muestra el menu principal para un usuario que ha iniciado sesion.
-
     private void mostrarMenuPrincipalLogueado() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("\n--- Menu Principal (Usuario Logueado: " + emailUsuarioLogueado + ") ---");
-        ConsolaUtilConfig.mostrarMensaje("1. Gestion de Preguntas");
-        ConsolaUtilConfig.mostrarMensaje("2. Forzar Importacion de Preguntas Originales (PRECAUCION: Puede duplicar si ya existen)");
-        ConsolaUtilConfig.mostrarMensaje("3. Cerrar Sesion");
-        int opcion = ConsolaUtilConfig.leerInt("Seleccione una opcion", 1, 3);
+        ConsolaUtilConfig.mostrarMensaje("\n--- Menú Principal (Usuario: " + emailUsuarioLogueado + ") ---");
+        ConsolaUtilConfig.mostrarMensaje("1. Gestión de Preguntas");
+        ConsolaUtilConfig.mostrarMensaje("2. Importar Preguntas Originales");
+        ConsolaUtilConfig.mostrarMensaje("3. Cerrar Sesión");
+        int opcion = ConsolaUtilConfig.leerInt("Seleccione una opción", 1, 3);
 
         switch (opcion) {
             case 1: manejarMenuGestionPreguntas(); break;
             case 2:
-                ConsolaUtilConfig.mostrarMensaje("\nIntentando importar preguntas desde el archivo JSON original...")
                 servicioPreguntasConfig.importarPreguntasDesdeJsonOriginal();
                 ConsolaUtilConfig.presionaEnterParaContinuar();
                 break;
             case 3:
                 emailUsuarioLogueado = null;
-                ConsolaUtilConfig.mostrarMensaje("Sesion cerrada exitosamente.");
+                ConsolaUtilConfig.mostrarMensaje("Sesión cerrada.");
                 ConsolaUtilConfig.presionaEnterParaContinuar();
-                ConsolaUtilConfig.limpiarConsola(); // Limpiar para volver al menu de autenticacion
                 break;
         }
     }
 
-
-    //Muestra y maneja el submenu para la gestion de preguntas.
-
     private void manejarMenuGestionPreguntas() {
-        boolean continuarEnEsteMenu = true;
-        while (continuarEnEsteMenu) {
+        boolean continuar = true;
+        while (continuar) {
             ConsolaUtilConfig.limpiarConsola();
-            ConsolaUtilConfig.mostrarMensaje("\n--- Submenu: Gestion de Preguntas (Usuario: " + emailUsuarioLogueado + ") ---");
+            ConsolaUtilConfig.mostrarMensaje("\n--- Gestión de Preguntas ---");
             ConsolaUtilConfig.mostrarMensaje("1. Agregar Nueva Pregunta");
-            ConsolaUtilConfig.mostrarMensaje("2. Modificar Pregunta Existente (Texto, Respuesta, Categoria, Tiempo)");
-            ConsolaUtilConfig.mostrarMensaje("3. Modificar Unicamente el Tiempo Maximo de Respuesta de una Pregunta");
-            ConsolaUtilConfig.mostrarMensaje("4. Eliminar Pregunta");
-            ConsolaUtilConfig.mostrarMensaje("5. Consultar Todas las Preguntas Registradas");
-            ConsolaUtilConfig.mostrarMensaje("6. Consultar Preguntas por Estado Especifico");
-            ConsolaUtilConfig.mostrarMensaje("7. Aprobar o Rechazar Preguntas Pendientes (creadas por otros usuarios)");
-            ConsolaUtilConfig.mostrarMensaje("8. Volver al Menu Principal");
-            int opcion = ConsolaUtilConfig.leerInt("Seleccione una opcion del submenu", 1, 8);
+            ConsolaUtilConfig.mostrarMensaje("2. Modificar Pregunta Existente");
+            ConsolaUtilConfig.mostrarMensaje("3. Eliminar Pregunta");
+            ConsolaUtilConfig.mostrarMensaje("4. Consultar Preguntas (Todas)");
+            ConsolaUtilConfig.mostrarMensaje("5. Consultar Preguntas por Estado");
+            ConsolaUtilConfig.mostrarMensaje("6. Aprobar/Rechazar Preguntas Pendientes");
+            ConsolaUtilConfig.mostrarMensaje("7. Volver al Menú Principal");
+            int opcion = ConsolaUtilConfig.leerInt("Seleccione una opción", 1, 7);
 
             switch (opcion) {
-                case 1: uiSubMenuAgregarPregunta(); break;
-                case 2: uiSubMenuModificarPregunta(); break;
-                case 3: uiSubMenuModificarTiempoPregunta(); break;
-                case 4: uiSubMenuEliminarPregunta(); break;
-                case 5: uiSubMenuConsultarTodasLasPreguntas(); break;
-                case 6: uiSubMenuConsultarPreguntasPorEstado(); break;
-                case 7: uiSubMenuAprobarRechazarPreguntas(); break;
-                case 8: continuarEnEsteMenu = false; break; // Sale de este submenu
+                case 1: uiAgregarPregunta(); break;
+                case 2: uiModificarPregunta(); break;
+                case 3: uiEliminarPregunta(); break;
+                case 4: uiConsultarTodas(); break;
+                case 5: uiConsultarPorEstado(); break;
+                case 6: uiAprobarRechazar(); break;
+                case 7: continuar = false; break;
             }
-            if(continuarEnEsteMenu) ConsolaUtilConfig.presionaEnterParaContinuar(); // Pausa antes de volver a mostrar el submenu
+            if(continuar) ConsolaUtilConfig.presionaEnterParaContinuar();
         }
     }
 
-    // Flujo de UI para agregar una nueva pregunta.
-    private void uiSubMenuAgregarPregunta() {
+    private void uiAgregarPregunta() {
         ConsolaUtilConfig.limpiarConsola();
         ConsolaUtilConfig.mostrarMensaje("--- Agregar Nueva Pregunta ---");
-        String texto = ConsolaUtilConfig.leerString("Ingrese el texto de la nueva pregunta");
-        String respuesta = ConsolaUtilConfig.leerString("Ingrese la respuesta correcta");
-        CategoriaTrivia categoriaSeleccionada = uiSubMenuSeleccionarCategoria(null); // null indica que no hay categoria actual
-        if (categoriaSeleccionada == null) { ConsolaUtilConfig.mostrarMensaje(">> Operacion cancelada: No se selecciono categoria."); return; }
-        int tiempoMax = ConsolaUtilConfig.leerInt("Ingrese el tiempo maximo de respuesta en segundos (ej. 30)", 5, 300);
-        String resultado = servicioPreguntasConfig.agregarPregunta(texto, respuesta, categoriaSeleccionada, tiempoMax, emailUsuarioLogueado);
+        String texto = ConsolaUtilConfig.leerString("Texto de la pregunta");
+        String respuesta = ConsolaUtilConfig.leerString("Respuesta correcta");
+        CategoriaTrivia categoria = uiSeleccionarCategoria(null);
+        if (categoria == null) return;
+        String resultado = servicioPreguntasConfig.agregarPregunta(texto, respuesta, categoria, emailUsuarioLogueado);
         ConsolaUtilConfig.mostrarMensaje(resultado);
     }
 
-    //Flujo de UI para seleccionar una categoria, permitiendo no cambiar una actual si se provee.
-
-    private CategoriaTrivia uiSubMenuSeleccionarCategoria(CategoriaTrivia categoriaActual) {
-        String mensajePrompt = "\nSeleccione la categoria";
-        if (categoriaActual != null) {
-            mensajePrompt += " (actual: " + categoriaActual.getNombreMostrado() + ")";
+    private CategoriaTrivia uiSeleccionarCategoria(CategoriaTrivia actual) {
+        String prompt = "\nSeleccione la categoría";
+        if(actual != null) prompt += " (actual: " + actual.getNombreMostrado() + ")";
+        ConsolaUtilConfig.mostrarMensaje(prompt + ":");
+        CategoriaTrivia[] categorias = CategoriaTrivia.values();
+        for (int i = 0; i < categorias.length; i++) {
+            ConsolaUtilConfig.mostrarMensaje((i + 1) + ". " + categorias[i].getNombreMostrado());
         }
-        ConsolaUtilConfig.mostrarMensaje(mensajePrompt + ":");
-
-        CategoriaTrivia[] todasLasCategorias = CategoriaTrivia.values();
-        for (int i = 0; i < todasLasCategorias.length; i++) {
-            ConsolaUtilConfig.mostrarMensaje((i + 1) + ". " + todasLasCategorias[i].getNombreMostrado());
+        int maxOpcion = categorias.length;
+        if (actual != null) {
+            maxOpcion++;
+            ConsolaUtilConfig.mostrarMensaje(maxOpcion + ". No cambiar");
         }
-
-        int opcionNoCambiar = todasLasCategorias.length + 1;
-        if (categoriaActual != null) {
-            ConsolaUtilConfig.mostrarMensaje(opcionNoCambiar + ". No cambiar categoria actual (" + categoriaActual.getNombreMostrado() + ")");
-        }
-
-        int minOpcionValida = 1;
-        int maxOpcionValida = categoriaActual != null ? opcionNoCambiar : todasLasCategorias.length;
-
-        int opcionElegida = ConsolaUtilConfig.leerInt("Opcion de Categoria", minOpcionValida, maxOpcionValida);
-
-        if (categoriaActual != null && opcionElegida == opcionNoCambiar) return categoriaActual; // Elige no cambiar
-        if (opcionElegida >= minOpcionValida && opcionElegida <= todasLasCategorias.length) return todasLasCategorias[opcionElegida - 1]; // Seleccion valida
-
-        ConsolaUtilConfig.mostrarMensaje(">> Seleccion de categoria invalida o cancelada.");
-        return categoriaActual; // Devuelve la actual si la nueva seleccion fallo, o null si no habia actual
+        int opcion = ConsolaUtilConfig.leerInt("Categoría", 1, maxOpcion);
+        if (actual != null && opcion == maxOpcion) return actual;
+        return categorias[opcion - 1];
     }
 
-    //Flujo de UI para modificar una pregunta existente.
-    private void uiSubMenuModificarPregunta() {
+    private void uiModificarPregunta() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Modificar Pregunta Existente ---");
-        String idPregunta = ConsolaUtilConfig.leerString("Ingrese el ID de la pregunta que desea modificar");
-        Optional<PreguntaDetallada> optPregunta = servicioPreguntasConfig.buscarPreguntaPorId(idPregunta);
-        if (optPregunta.isEmpty()) { ConsolaUtilConfig.mostrarMensaje(">> No se encontro una pregunta con el ID '" + idPregunta + "'."); return; }
+        ConsolaUtilConfig.mostrarMensaje("--- Modificar Pregunta ---");
+        String id = ConsolaUtilConfig.leerString("ID de la pregunta a modificar");
+        Optional<PreguntaDetallada> optP = servicioPreguntasConfig.buscarPreguntaPorId(id);
+        if (optP.isEmpty()) { ConsolaUtilConfig.mostrarMensaje("Pregunta no encontrada."); return; }
+        PreguntaDetallada pActual = optP.get();
+        if (pActual.getEstado() == EstadoPregunta.APROBADA) { ConsolaUtilConfig.mostrarMensaje("No se pueden modificar preguntas APROBADAS."); return; }
 
-        PreguntaDetallada preguntaActual = optPregunta.get();
-        if (preguntaActual.getEstado() == EstadoPregunta.APROBADA) {
-            ConsolaUtilConfig.mostrarMensaje(">> Las preguntas que ya han sido APROBADAS no pueden ser modificadas (solo eliminadas).");
-            return;
-        }
+        ConsolaUtilConfig.mostrarMensaje("Modificando: " + pActual);
+        String nTexto = ConsolaUtilConfig.leerString("Nuevo texto (Enter para no cambiar)");
+        String nResp = ConsolaUtilConfig.leerString("Nueva respuesta (Enter para no cambiar)");
+        CategoriaTrivia nCat = uiSeleccionarCategoria(pActual.getCategoria());
 
-        ConsolaUtilConfig.mostrarMensaje("Modificando pregunta con ID: " + idPregunta);
-        ConsolaUtilConfig.mostrarMensaje("Texto actual: " + preguntaActual.getPregunta());
-        String nuevoTexto = ConsolaUtilConfig.leerString("Nuevo texto (deje vacio para no cambiar)");
-
-        ConsolaUtilConfig.mostrarMensaje("Respuesta actual: " + preguntaActual.getRespuesta());
-        String nuevaRespuesta = ConsolaUtilConfig.leerString("Nueva respuesta (deje vacio para no cambiar)");
-
-        CategoriaTrivia nuevaCategoria = uiSubMenuSeleccionarCategoria(preguntaActual.getCategoria());
-
-        ConsolaUtilConfig.mostrarMensaje("Tiempo maximo actual: " + preguntaActual.getTiempoMaximoRespuestaSegundos() + "s");
-        int nuevoTiempo = ConsolaUtilConfig.leerInt("Nuevo tiempo maximo en segundos (ingrese 0 para no cambiar)", 0, 300);
-
-        String resultado = servicioPreguntasConfig.modificarPregunta(idPregunta,
-                nuevoTexto, // El servicio manejara si es vacio
-                nuevaRespuesta,
-                nuevaCategoria,
-                nuevoTiempo);
+        String resultado = servicioPreguntasConfig.modificarPregunta(id, nTexto, nResp, nCat);
         ConsolaUtilConfig.mostrarMensaje(resultado);
     }
 
-    //Flujo de UI para modificar solo el tiempo de una pregunta.
-    private void uiSubMenuModificarTiempoPregunta() {
+    private void uiEliminarPregunta() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Modificar Tiempo Maximo de Respuesta de una Pregunta ---");
-        String idPregunta = ConsolaUtilConfig.leerString("Ingrese el ID de la pregunta para modificar su tiempo");
-        Optional<PreguntaDetallada> optPregunta = servicioPreguntasConfig.buscarPreguntaPorId(idPregunta);
-        if (optPregunta.isEmpty()) { ConsolaUtilConfig.mostrarMensaje(">> Pregunta no encontrada."); return; }
-
-        PreguntaDetallada pregunta = optPregunta.get();
-        if (pregunta.getEstado() == EstadoPregunta.APROBADA) {
-            ConsolaUtilConfig.mostrarMensaje(">> No se puede modificar el tiempo de una pregunta que ya esta APROBADA.");
-            return;
-        }
-
-        ConsolaUtilConfig.mostrarMensaje("Pregunta: " + pregunta.getPregunta().substring(0, Math.min(30, pregunta.getPregunta().length())) + "...");
-        ConsolaUtilConfig.mostrarMensaje("Tiempo maximo actual: " + pregunta.getTiempoMaximoRespuestaSegundos() + "s");
-        int nuevoTiempoSegundos = ConsolaUtilConfig.leerInt("Ingrese el nuevo tiempo maximo en segundos", 5, 300);
-        String resultado = servicioPreguntasConfig.modificarTiempoPregunta(idPregunta, nuevoTiempoSegundos);
-        ConsolaUtilConfig.mostrarMensaje(resultado);
-    }
-
-    //Flujo de UI para eliminar una pregunta.
-    private void uiSubMenuEliminarPregunta() {
-        ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Eliminar Pregunta ---");
-        String idPregunta = ConsolaUtilConfig.leerString("Ingrese el ID de la pregunta que desea eliminar");
-        Optional<PreguntaDetallada> optPregunta = servicioPreguntasConfig.buscarPreguntaPorId(idPregunta);
-        if (optPregunta.isEmpty()) { ConsolaUtilConfig.mostrarMensaje(">> Pregunta no encontrada."); return; }
-
-        ConsolaUtilConfig.mostrarMensaje("Pregunta a eliminar: " + optPregunta.get().getPregunta());
-        String confirmacion = ConsolaUtilConfig.leerString("¿Esta seguro que desea eliminar esta pregunta? (S/N)").toUpperCase();
+        ConsolaUtilConfig.mostrarMensaje("--- Eliminar Pregunta ---"); // CORREGIDO
+        String id = ConsolaUtilConfig.leerString("ID de la pregunta a eliminar"); // CORREGIDO
+        String confirmacion = ConsolaUtilConfig.leerString("¿Seguro que desea eliminar la pregunta ID '"+id+"'? (S/N)").toUpperCase(); // CORREGIDO
         if (confirmacion.equals("S")) {
-            ConsolaUtilConfig.mostrarMensaje(servicioPreguntasConfig.eliminarPregunta(idPregunta));
+            ConsolaUtilConfig.mostrarMensaje(servicioPreguntasConfig.eliminarPregunta(id)); // CORREGIDO
         } else {
-            ConsolaUtilConfig.mostrarMensaje("Eliminacion cancelada.");
+            ConsolaUtilConfig.mostrarMensaje("Eliminación cancelada."); // CORREGIDO
         }
     }
 
-    //Flujo de UI para consultar todas las preguntas.
-    private void uiSubMenuConsultarTodasLasPreguntas() {
+    private void uiConsultarTodas() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Listado de Todas las Preguntas Registradas ---");
-        List<PreguntaDetallada> todasLasPreguntas = servicioPreguntasConfig.consultarTodasLasPreguntas();
-        if (todasLasPreguntas.isEmpty()) {
-            ConsolaUtilConfig.mostrarMensaje("No hay preguntas registradas en el sistema.");
-            return;
-        }
-        for(PreguntaDetallada pregunta : todasLasPreguntas) {
-            ConsolaUtilConfig.mostrarMensaje(pregunta.toString() + " [Creador: " + pregunta.getUsuarioCreadorEmail() + "]");
-        }
+        ConsolaUtilConfig.mostrarMensaje("--- Todas las Preguntas ---"); // CORREGIDO
+        List<PreguntaDetallada> todas = servicioPreguntasConfig.consultarTodasLasPreguntas();
+        if (todas.isEmpty()) { ConsolaUtilConfig.mostrarMensaje("No hay preguntas."); return; } // CORREGIDO
+        todas.forEach(p -> ConsolaUtilConfig.mostrarMensaje(p.toString() + " [Creador: " + p.getUsuarioCreadorEmail() + "]")); // CORREGIDO
     }
 
-    //Flujo de UI para consultar preguntas por un estado especifico.
-    private void uiSubMenuConsultarPreguntasPorEstado() {
+    private void uiConsultarPorEstado() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Consultar Preguntas por Estado ---");
-        EstadoPregunta[] todosLosEstados = EstadoPregunta.values();
-        for(int i=0; i < todosLosEstados.length; i++) {
-            ConsolaUtilConfig.mostrarMensaje((i+1) + ". " + todosLosEstados[i]);
-        }
-        int opcionEstado = ConsolaUtilConfig.leerInt("Seleccione el estado por el cual desea filtrar", 1, todosLosEstados.length);
-        EstadoPregunta estadoSeleccionado = todosLosEstados[opcionEstado-1];
-
-        List<PreguntaDetallada> preguntasFiltradas = servicioPreguntasConfig.consultarPreguntasPorEstado(estadoSeleccionado);
-        ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("\n--- Preguntas en estado: " + estadoSeleccionado + " ---");
-        if (preguntasFiltradas.isEmpty()) {
-            ConsolaUtilConfig.mostrarMensaje("No se encontraron preguntas en el estado '" + estadoSeleccionado + "'.");
-            return;
-        }
-        for(PreguntaDetallada pregunta : preguntasFiltradas) {
-            ConsolaUtilConfig.mostrarMensaje(pregunta.toString() + " [Creador: " + pregunta.getUsuarioCreadorEmail() + "]");
-        }
+        ConsolaUtilConfig.mostrarMensaje("--- Consultar por Estado ---"); // CORREGIDO
+        EstadoPregunta[] estados = EstadoPregunta.values();
+        for(int i=0; i<estados.length; i++) { ConsolaUtilConfig.mostrarMensaje((i+1) + ". " + estados[i]); } // CORREGIDO
+        int opcion = ConsolaUtilConfig.leerInt("Seleccione estado", 1, estados.length); // CORREGIDO
+        EstadoPregunta estSel = estados[opcion-1];
+        List<PreguntaDetallada> filtradas = servicioPreguntasConfig.consultarPreguntasPorEstado(estSel);
+        ConsolaUtilConfig.mostrarMensaje("\n--- Preguntas en estado: " + estSel + " ---"); // CORREGIDO
+        if (filtradas.isEmpty()) { ConsolaUtilConfig.mostrarMensaje("Ninguna."); return; } // CORREGIDO
+        filtradas.forEach(p -> ConsolaUtilConfig.mostrarMensaje(p.toString() + " [Creador: " + p.getUsuarioCreadorEmail() + "]")); // CORREGIDO
     }
 
-    //Flujp de UI para aprobar o rechazar preguntas pendientes.
-    private void uiSubMenuAprobarRechazarPreguntas() {
+    private void uiAprobarRechazar() {
         ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("--- Aprobar/Rechazar Preguntas Pendientes (creadas por otros usuarios) ---");
-        List<PreguntaDetallada> preguntasParaGestionar = servicioPreguntasConfig.consultarPreguntasParaAprobar(emailUsuarioLogueado);
+        ConsolaUtilConfig.mostrarMensaje("--- Aprobar/Rechazar Preguntas Pendientes ---"); // CORREGIDO
+        List<PreguntaDetallada> pendientes = servicioPreguntasConfig.consultarPreguntasParaAprobar(emailUsuarioLogueado);
+        if (pendientes.isEmpty()) { ConsolaUtilConfig.mostrarMensaje("No hay preguntas de otros usuarios pendientes de su gestión."); return; } // CORREGIDO
 
-        if (preguntasParaGestionar.isEmpty()) {
-            ConsolaUtilConfig.mostrarMensaje("No hay preguntas de otros usuarios que esten actualmente pendientes de su gestion.");
-            return;
+        for (int i = 0; i < pendientes.size(); i++) {
+            ConsolaUtilConfig.mostrarMensaje((i + 1) + ". " + pendientes.get(i).toString()); // CORREGIDO
         }
+        int numSel = ConsolaUtilConfig.leerInt("Número de pregunta a gestionar (0 para cancelar)", 0, pendientes.size()); // CORREGIDO
+        if (numSel == 0) return;
+        PreguntaDetallada pSel = pendientes.get(numSel - 1);
 
-        ConsolaUtilConfig.mostrarMensaje("Preguntas pendientes para su revision:");
-        for (int i = 0; i < preguntasParaGestionar.size(); i++) {
-            PreguntaDetallada p = preguntasParaGestionar.get(i);
-            ConsolaUtilConfig.mostrarMensaje((i + 1) + ". " + p.toString() + " (Creada por: " + p.getUsuarioCreadorEmail() + ")");
-        }
-
-        int numeroSeleccionado = ConsolaUtilConfig.leerInt("Ingrese el numero de la pregunta que desea gestionar (0 para cancelar)", 0, preguntasParaGestionar.size());
-        if (numeroSeleccionado == 0) {
-            ConsolaUtilConfig.mostrarMensaje("Gestion cancelada por el usuario.");
-            return;
-        }
-
-        PreguntaDetallada preguntaSeleccionada = preguntasParaGestionar.get(numeroSeleccionado - 1);
-        ConsolaUtilConfig.limpiarConsola();
-        ConsolaUtilConfig.mostrarMensaje("\nDetalles de la pregunta seleccionada (ID: " + preguntaSeleccionada.getId() + "):");
-        ConsolaUtilConfig.mostrarMensaje("  Texto: " + preguntaSeleccionada.getPregunta());
-        ConsolaUtilConfig.mostrarMensaje("  Respuesta: " + preguntaSeleccionada.getRespuesta());
-        ConsolaUtilConfig.mostrarMensaje("  Categoria: " + preguntaSeleccionada.getCategoria().getNombreMostrado());
-        ConsolaUtilConfig.mostrarMensaje("  Tiempo Max.: " + preguntaSeleccionada.getTiempoMaximoRespuestaSegundos() + "s");
-        ConsolaUtilConfig.mostrarMensaje("  Creador: " + preguntaSeleccionada.getUsuarioCreadorEmail());
-
-        ConsolaUtilConfig.mostrarMensaje("\nAcciones disponibles:");
-        ConsolaUtilConfig.mostrarMensaje("1. Aprobar esta Pregunta");
-        ConsolaUtilConfig.mostrarMensaje("2. Rechazar esta Pregunta");
-        ConsolaUtilConfig.mostrarMensaje("3. Cancelar y volver");
-        int accionElegida = ConsolaUtilConfig.leerInt("Seleccione una accion", 1, 3);
-
-        String resultadoAccion = "Accion cancelada por el usuario.";
-        if (accionElegida == 1) {
-            resultadoAccion = servicioPreguntasConfig.cambiarEstadoPregunta(preguntaSeleccionada.getId(), EstadoPregunta.APROBADA, emailUsuarioLogueado);
-        } else if (accionElegida == 2) {
-            resultadoAccion = servicioPreguntasConfig.cambiarEstadoPregunta(preguntaSeleccionada.getId(), EstadoPregunta.RECHAZADA, emailUsuarioLogueado);
-        }
-        ConsolaUtilConfig.mostrarMensaje(resultadoAccion);
+        ConsolaUtilConfig.mostrarMensaje("Gestionando ID: " + pSel.getId() + "\n1. Aprobar | 2. Rechazar | 3. Cancelar"); // CORREGIDO
+        int accion = ConsolaUtilConfig.leerInt("Acción", 1, 3); // CORREGIDO
+        String resultado = "Acción cancelada.";
+        if (accion == 1) resultado = servicioPreguntasConfig.cambiarEstadoPregunta(pSel.getId(), EstadoPregunta.APROBADA, emailUsuarioLogueado);
+        else if (accion == 2) resultado = servicioPreguntasConfig.cambiarEstadoPregunta(pSel.getId(), EstadoPregunta.RECHAZADA, emailUsuarioLogueado);
+        ConsolaUtilConfig.mostrarMensaje(resultado); // CORREGIDO
     }
 }
