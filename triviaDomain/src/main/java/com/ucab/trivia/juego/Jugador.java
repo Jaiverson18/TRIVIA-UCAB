@@ -8,10 +8,6 @@ import com.ucab.trivia.juego.TableroHexagonal.CoordenadaHex;
  * Representa a un jugador en el juego TRIVIA-UCAB.
  * Contiene su identificador (correo electrónico), su ficha, su posición actual en el tablero
  * (usando CoordenadaHex) y sus estadísticas de juego.
- *
- * @author (Tu Nombre/Equipo - Luis)
- * @version 1.3 // Versión actualizada para reflejar el cambio de tipo de posición
- * @since 2025-06-02
  */
 public class Jugador {
     private String correoElectronico;
