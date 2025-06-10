@@ -7,10 +7,6 @@ import com.ucab.trivia.domain.CategoriaTrivia;
  * Para el tablero hexagonal, esta clase almacena la categoría de la pregunta
  * y si es una casilla especial de "volver a lanzar" o la casilla central.
  * La posición (fila, columna) la maneja el tablero.
- *
- * @author (Tu Nombre/Equipo - Luis)
- * @version 1.2 // Versión actualizada con corrección
- * @since 2025-06-02
  */
 public class Casilla {
     private CategoriaTrivia categoria;
