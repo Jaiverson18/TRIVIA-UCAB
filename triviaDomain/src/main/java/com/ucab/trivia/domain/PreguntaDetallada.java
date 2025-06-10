@@ -5,10 +5,6 @@ import java.util.Objects;
 /**
  * Representa una pregunta con sus detalles. El tiempo de respuesta ya no se almacena aquí,
  * será una configuración global del juego.
- *
- * @author (Tu Nombre/Equipo - Jaiverson)
- * @version 1.1
- * @since 2025-06-02
  */
 public class PreguntaDetallada {
     private String id;
