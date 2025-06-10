@@ -8,10 +8,6 @@ import java.util.Arrays;
 /**
  * Enumeración que representa las categorías de preguntas.
  * Los nombres han sido ajustados para coincidir exactamente con las claves del archivo JSON de preguntas.
- *
- * @author (Tu Nombre/Equipo - Jaiverson)
- * @version 1.1
- * @since 2025-06-02
  */
 public enum CategoriaTrivia {
     // Nombres ajustados para coincidir con preguntasJuegoTrivia.json
