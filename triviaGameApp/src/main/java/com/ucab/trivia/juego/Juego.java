@@ -16,7 +16,7 @@ public class Juego {
     private ServicioPreguntasJuego servicioPreguntas;
     private ServicioPersistencia servicioPersistencia;
     private boolean modoPorTiempo;
-    private int tiempoMaximoGlobalSegundos; // <-- AÑADIDO
+    private int tiempoMaximoGlobalSegundos;
     private Jugador ganador;
     private boolean juegoTerminadoGlobalmente;
 
@@ -30,7 +30,7 @@ public class Juego {
         this.ganador = null;
         this.juegoTerminadoGlobalmente = false;
         this.jugadores = new ArrayList<>();
-        this.tiempoMaximoGlobalSegundos = 0; // Se establecerá si es juego por tiempo
+        this.tiempoMaximoGlobalSegundos = 0;
     }
 
     public void configurarEIniciar(List<String> correosJugadores, boolean esModoPorTiempo, int tiempoGlobal) {
@@ -38,7 +38,7 @@ public class Juego {
         this.modoPorTiempo = esModoPorTiempo;
         this.tiempoMaximoGlobalSegundos = esModoPorTiempo ? tiempoGlobal : 0;
 
-        // Lógica de carga de partida (simplificada, ya que ahora el tiempo global es parte del estado)
+        // Cargar partida (ya no está en un if/else separado para permitir configuración de nuevo juego si la carga falla)
         if (servicioPersistencia.existePartidaGuardada()) {
             String respCarga = ConsolaUtilJuego.leerString("Hay una partida guardada. ¿Cargarla? (S/N)").toUpperCase();
             if (respCarga.equals("S")) {
@@ -70,11 +70,7 @@ public class Juego {
         iniciarBucleDeJuego();
     }
 
-    // El resto de la lógica de Juego (movimiento, preguntas, etc.) se mantiene, pero usará this.tiempoMaximoGlobalSegundos
-    // en lugar de un tiempo por pregunta.
-
     private void establecerPosicionesInicialesDeJugadoresYEnTablero() {
-        // ... (sin cambios)
         CoordenadaHex coordCentro = tablero.getCoordenadaCentro();
         for (Jugador j : jugadores) {
             j.setPosicionActual(coordCentro);
@@ -83,8 +79,7 @@ public class Juego {
     }
 
     private void determinarPrimerJugadorEnLanzar() {
-        // ... (sin cambios)
-        if (jugadores.isEmpty() || jugadores.size() == 1) { indiceJugadorActual = 0; return; }
+        if (jugadores.size() <= 1) { indiceJugadorActual = 0; return; }
         ConsolaUtilJuego.limpiarConsola();
         ConsolaUtilJuego.mostrarMensaje("--- Determinando el Primer Jugador ---");
         List<Integer> resultados = new ArrayList<>();
@@ -108,7 +103,6 @@ public class Juego {
     }
 
     private void iniciarBucleDeJuego() {
-        // ... (sin cambios)
         while (!juegoTerminadoGlobalmente) {
             Jugador jugadorConTurno = jugadores.get(indiceJugadorActual);
             ConsolaUtilJuego.limpiarConsola();
@@ -135,7 +129,6 @@ public class Juego {
     }
 
     private boolean procesarUnaAccionCompletaDelJugador(Jugador jugador) {
-        // ... (sin cambios, usa el nuevo método de movimiento de TableroHexagonal)
         CoordenadaHex posActualHex = jugador.getPosicionActual();
         Casilla casillaActualTablero = tablero.getCasilla(posActualHex);
 
@@ -145,8 +138,16 @@ public class Juego {
 
         ConsolaUtilJuego.mostrarMensaje("Presiona Enter para lanzar el dado.");
         ConsolaUtilJuego.presionaEnterParaContinuar();
-        int pasosObtenidos = dado.lanzar();
-        ConsolaUtilJuego.mostrarMensaje(jugador.getCorreoElectronico() + " lanzó el dado y obtuvo: " + pasosObtenidos + "!");
+
+        // **INICIO DE LA MODIFICACIÓN 1: DADO IMPAR**
+        int lanzamientoOriginal = dado.lanzar();
+        ConsolaUtilJuego.mostrarMensaje(jugador.getCorreoElectronico() + " lanzó el dado y obtuvo: " + lanzamientoOriginal + "!");
+        int pasosObtenidos = lanzamientoOriginal;
+        if (lanzamientoOriginal % 2 != 0) { // Si es impar
+            pasosObtenidos += 2;
+            ConsolaUtilJuego.mostrarMensaje("¡Número impar! Obtienes un bono de +2 pasos. Moverás un total de " + pasosObtenidos + " casillas.");
+        }
+        // **FIN DE LA MODIFICACIÓN 1**
 
         CoordenadaHex posicionPreviaHex = jugador.getPosicionActual();
         tablero.quitarJugadorDeCasilla(posicionPreviaHex);
@@ -212,7 +213,7 @@ public class Juego {
             }
         } else {
             ConsolaUtilJuego.mostrarMensaje("Necesitas completar tu ficha. Debes salir del centro.");
-            int pasosAlSalir = dado.lanzar();
+            int pasosAlSalir = dado.lanzar(); // No se aplica bono impar al salir del centro por simplicidad
             ConsolaUtilJuego.mostrarMensaje(jugador.getCorreoElectronico() + " lanzó " + pasosAlSalir + " para salir.");
 
             tablero.quitarJugadorDeCasilla(jugador.getPosicionActual());
@@ -226,26 +227,36 @@ public class Juego {
     }
 
     private boolean manejarLogicaDePreguntaEnCasilla(Jugador jugador, Casilla casillaActual){
-        // ... (sin cambios)
         if(casillaActual.getCategoria() == null){
             return false;
         }
         PreguntaDetallada preguntaDelTurno = servicioPreguntas.seleccionarPreguntaAleatoria(casillaActual.getCategoria());
         if (preguntaDelTurno == null) {
             ConsolaUtilJuego.mostrarMensaje("No hay preguntas para " + casillaActual.getCategoria() + ". ¡Qué suerte! Sigues jugando.");
-            ConsolaUtilJuego.presionaEnterParaContinuar();
             return true;
         }
         if (uiRealizarPreguntaAlJugador(jugador, preguntaDelTurno)) {
             ConsolaUtilJuego.mostrarMensaje("¡Respuesta Correcta!");
-            if (!jugador.getFicha().haObtenidoCategoria(casillaActual.getCategoria())) {
-                jugador.getFicha().marcarCategoriaObtenida(casillaActual.getCategoria());
-                ConsolaUtilJuego.mostrarMensaje("¡Has obtenido el 'quesito' de " + casillaActual.getCategoria() + "!");
-                ConsolaUtilJuego.mostrarMensaje(jugador.getFicha().toString());
-                if (jugador.getFicha().estaCompleta()) {
-                    ConsolaUtilJuego.mostrarMensaje("¡FICHA COMPLETA! Ahora debes dirigirte al centro para ganar.");
+
+            // **INICIO DE LA MODIFICACIÓN 2: ESQUINAS RADIALES**
+            CoordenadaHex posActual = jugador.getPosicionActual();
+            if (tablero.esCasillaVerticeRadial(posActual)) {
+                ConsolaUtilJuego.mostrarMensaje("¡BONUS! ¡Has acertado en una casilla de esquina radial y ganas todas las categorías!");
+                jugador.getFicha().rellenarTodasLasCategorias();
+            } else {
+                // Lógica original si NO es una casilla de esquina
+                if (!jugador.getFicha().haObtenidoCategoria(casillaActual.getCategoria())) {
+                    jugador.getFicha().marcarCategoriaObtenida(casillaActual.getCategoria());
+                    ConsolaUtilJuego.mostrarMensaje("¡Has obtenido el 'quesito' de la categoría " + casillaActual.getCategoria() + "!");
                 }
             }
+            // **FIN DE LA MODIFICACIÓN 2**
+
+            ConsolaUtilJuego.mostrarMensaje(jugador.getFicha().toString());
+            if (jugador.getFicha().estaCompleta()) {
+                ConsolaUtilJuego.mostrarMensaje("¡FICHA COMPLETA! Ahora debes dirigirte al centro para ganar.");
+            }
+
             ConsolaUtilJuego.mostrarMensaje("Vuelves a lanzar el dado.");
             ConsolaUtilJuego.presionaEnterParaContinuar();
             return true;
@@ -261,7 +272,6 @@ public class Juego {
         String respuestaDelUsuario;
         long tiempoInicio = System.currentTimeMillis();
         if (modoPorTiempo) {
-            // **AQUÍ SE USA EL TIEMPO GLOBAL**
             respuestaDelUsuario = ConsolaUtilJuego.leerStringConCronometro("Tu respuesta", this.tiempoMaximoGlobalSegundos);
         } else {
             respuestaDelUsuario = ConsolaUtilJuego.leerString("Tu respuesta");
@@ -288,13 +298,11 @@ public class Juego {
     }
 
     private void pasarAlSiguienteJugador() {
-        // ... (sin cambios)
         indiceJugadorActual = (indiceJugadorActual + 1) % jugadores.size();
     }
 
     private void guardarEstadoActualDelJuego() {
         if (servicioPersistencia != null && jugadores != null && !jugadores.isEmpty() && !juegoTerminadoGlobalmente) {
-            // **AQUÍ SE GUARDA EL TIEMPO GLOBAL**
             EstadoJuegoGuardado estadoActual = new EstadoJuegoGuardado(new ArrayList<>(jugadores), indiceJugadorActual, modoPorTiempo, this.tiempoMaximoGlobalSegundos);
             servicioPersistencia.guardarEstadoJuego(estadoActual);
         }
