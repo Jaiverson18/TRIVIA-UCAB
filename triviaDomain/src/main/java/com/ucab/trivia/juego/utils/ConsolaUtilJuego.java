@@ -8,10 +8,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Utilidades para la interacción por consola en la aplicación del juego.
  * Incluye métodos para leer entradas y un cronómetro funcional en consola.
- *
- * @author (Tu Nombre/Equipo - Luis)
- * @version 1.1 // Versión actualizada con corrección de cronómetro
- * @since 2025-06-02
  */
 public class ConsolaUtilJuego {
     private static final Scanner scanner = new Scanner(System.in, "UTF-8");
